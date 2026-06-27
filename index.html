@@ -412,13 +412,20 @@
     .sidebar{transform:translateX(-100%);transition:transform 0.25s;}
     .sidebar.open{transform:translateX(0);}
     .main-content{margin-left:0;}
-    .topbar{padding:0 16px 0 56px;height:54px;}
-    .topbar-greeting{font-size:14px;}
-    .topbar-sub{display:none;}
-    .topbar-right{gap:6px;}
+    .topbar{padding:0 12px 0 56px;height:58px;flex-wrap:nowrap;}
+    .topbar-left .greeting{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
+    .topbar-left .subtitle{display:none;}
+    .topbar-right{gap:6px;flex-shrink:0;}
     .btn-suporte{padding:7px 10px;font-size:12px;}
+    .btn-sair{padding:7px 12px;font-size:12px;}
     .page{padding:14px;}
-    .summary-cards{grid-template-columns:1fr;gap:10px;margin-bottom:16px;}
+    .summary-cards{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+    .scard{padding:14px 12px;gap:10px;flex-direction:column;align-items:flex-start;}
+    .scard-icon{width:40px;height:40px;border-radius:10px;}
+    .scard-icon svg{width:20px;height:20px;}
+    .scard-info .svalue{font-size:20px;}
+    .scard-info .slabel{font-size:10px;}
+    .scard-info .sdesc{font-size:11px;}
     .main-grid{grid-template-columns:1fr;gap:14px;}
     .filament-grid{grid-template-columns:1fr 1fr;gap:10px;}
     .fform{grid-template-columns:1fr;}
@@ -426,8 +433,6 @@
     .btn-add{grid-column:1;}
     .btn-cancel{grid-column:1;}
     .filter-row{flex-direction:column;gap:8px;}
-    .scard{padding:14px 16px;}
-    .scard-info .svalue{font-size:22px;}
     .panel{padding:16px;}
     .rep-grid{grid-template-columns:1fr;}
     .calc-wrap{max-width:100%;}
