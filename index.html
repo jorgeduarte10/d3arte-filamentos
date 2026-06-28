@@ -666,8 +666,8 @@
         <div class="etq-modal">
           <h3>🏷️ Imprimir etiqueta</h3>
           <div class="etq-select">
-            <label>Selecionar filamento</label>
-            <select id="etqFilSelect"></select>
+            <label>Selecionar filamentos para imprimir</label>
+            <div id="etqFilList" style="max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;gap:6px;"></div>
           </div>
           <div class="etq-preview" id="etqPreview"></div>
           <div class="etq-actions">
@@ -1671,8 +1671,17 @@ let etqModo = 'simples';
 
 function abrirModalEtiqueta(modo){
   etqModo = modo;
-  const sel = document.getElementById('etqFilSelect');
-  sel.innerHTML = filaments.map(f=>`<option value="${f.id}">${f.nome} — ${f.material}</option>`).join('');
+  const list = document.getElementById('etqFilList');
+  list.innerHTML = filaments.map(f=>`
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+      <input type="checkbox" class="etq-check" value="${f.id}" style="width:16px;height:16px;cursor:pointer;">
+      <span style="width:14px;height:14px;border-radius:3px;background:${f.cor||'#ccc'};flex-shrink:0;display:inline-block;border:1px solid rgba(0,0,0,0.15);"></span>
+      ${f.nome} — ${f.material}
+    </label>`).join('');
+  // check first by default
+  const first = list.querySelector('.etq-check');
+  if(first){ first.checked = true; }
+  list.querySelectorAll('.etq-check').forEach(cb => cb.addEventListener('change', renderEtiquetaPreview));
   renderEtiquetaPreview();
   document.getElementById('etqModal').classList.add('open');
 }
@@ -1686,14 +1695,19 @@ document.getElementById('navEtiquetaPro').addEventListener('click', (e)=>{
   abrirModalEtiqueta('pro');
 });
 
-document.getElementById('etqFilSelect').addEventListener('change', renderEtiquetaPreview);
+
 document.getElementById('etqCloseBtn').addEventListener('click', ()=>{
   document.getElementById('etqModal').classList.remove('open');
 });
 
 function getFilamenteSelecionado(){
-  const id = document.getElementById('etqFilSelect').value;
-  return filaments.find(f=>String(f.id)===String(id));
+  const checks = document.querySelectorAll('.etq-check:checked');
+  if(!checks.length) return null;
+  return filaments.find(f=>String(f.id)===String(checks[0].value));
+}
+function getFilamentosSelecionados(){
+  const checks = document.querySelectorAll('.etq-check:checked');
+  return Array.from(checks).map(cb => filaments.find(f=>String(f.id)===String(cb.value))).filter(Boolean);
 }
 
 function renderEtiquetaPreview(){
@@ -1771,99 +1785,106 @@ function renderEtiquetaPreview(){
   }
 }
 
-document.getElementById('etqPrintBtn').addEventListener('click', ()=>{
-  const f = getFilamenteSelecionado();
-  if(!f) return;
+document.getElementById('etqPrintBtn').addEventListener('click', async ()=>{
+  const selecionados = getFilamentosSelecionados();
+  if(!selecionados.length){ alert('Selecione ao menos um filamento.'); return; }
   const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
   const nomeMarca = cfgAtual.nome || brandName;
-  const content = document.getElementById('etqContent');
-  let qrDataUrl = '';
 
-  function executarImpressao(){
-    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-    <title>Etiqueta — ${f.nome}</title>
-    <style>
-      body{margin:0;padding:20px;font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;}
-      .etiqueta-simples{width:226px;min-height:142px;border:2px solid #1a2340;border-radius:8px;padding:12px 14px;}
-      .etiqueta-pro{width:280px;min-height:160px;border:2px solid #1a2340;border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start;}
-      .etq-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:2px solid #1a2340;}
-      .etq-swatch{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,0.1);flex-shrink:0;background:${f.cor||'#ccc'};}
-      .etq-nome{font-size:15px;font-weight:800;color:#1a2340;line-height:1.2;}
-      .etq-material{font-size:10px;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;}
-      .etq-body{font-size:11px;color:#3a4a6a;line-height:1.7;}
-      .etq-body span{font-weight:600;color:#1a2340;}
-      .etq-footer{margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f4;font-size:9px;color:#9aa5bf;text-align:right;}
-      .etq-pro-left{flex:1;}
-      .etq-pro-right{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;}
-      .etq-qr-label{font-size:8px;color:#9aa5bf;text-align:center;max-width:72px;line-height:1.3;}
-      @media print{@page{size:auto;margin:10mm;}}
-    </style></head><body>
-    ${etqModo === 'simples' ? `
-      <div class="etiqueta-simples">
+  function gerarQR(url){
+    return new Promise(resolve=>{
+      const qr = qrcode(0,'M');
+      qr.addData(url); qr.make();
+      const tmpCanvas = document.createElement('canvas');
+      const size = 72;
+      tmpCanvas.width = size; tmpCanvas.height = size;
+      const ctx = tmpCanvas.getContext('2d');
+      const cells = qr.getModuleCount();
+      const cellSize = size/cells;
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,size,size);
+      ctx.fillStyle='#1a2340';
+      for(let r=0;r<cells;r++) for(let c=0;c<cells;c++)
+        if(qr.isDark(r,c)) ctx.fillRect(Math.floor(c*cellSize),Math.floor(r*cellSize),Math.ceil(cellSize),Math.ceil(cellSize));
+      resolve(tmpCanvas.toDataURL());
+    });
+  }
+
+  function etqSimplesHtml(f){
+    return `<div class="etiqueta-simples">
+      <div class="etq-header">
+        <div class="etq-swatch" style="background:${f.cor||'#ccc'};"></div>
+        <div><div class="etq-nome">${f.nome}</div><div class="etq-material">${f.material}</div></div>
+      </div>
+      <div class="etq-body">
+        ${f.marca?`<div><span>Marca:</span> ${f.marca}</div>`:''}
+        ${f.fornecedor?`<div><span>Fornecedor:</span> ${f.fornecedor}</div>`:''}
+        ${f.valor?`<div><span>Valor:</span> R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>`:''}
+        ${f.nota?`<div><span>Obs:</span> ${f.nota}</div>`:''}
+      </div>
+      <div class="etq-footer">${nomeMarca}</div>
+    </div>`;
+  }
+
+  function etqProHtml(f, qrDataUrl){
+    return `<div class="etiqueta-pro">
+      <div class="etq-pro-left">
         <div class="etq-header">
-          <div class="etq-swatch"></div>
+          <div class="etq-swatch" style="background:${f.cor||'#ccc'};"></div>
           <div><div class="etq-nome">${f.nome}</div><div class="etq-material">${f.material}</div></div>
         </div>
         <div class="etq-body">
-          ${f.marca ? `<div><span>Marca:</span> ${f.marca}</div>` : ''}
-          ${f.fornecedor ? `<div><span>Fornecedor:</span> ${f.fornecedor}</div>` : ''}
-          ${f.valor ? `<div><span>Valor:</span> R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>` : ''}
-          ${f.nota ? `<div><span>Obs:</span> ${f.nota}</div>` : ''}
+          ${f.marca?`<div><span>Marca:</span> ${f.marca}</div>`:''}
+          ${f.fornecedor?`<div><span>Fornecedor:</span> ${f.fornecedor}</div>`:''}
+          ${f.valor?`<div><span>Valor:</span> R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>`:''}
+          ${f.nota?`<div><span>Obs:</span> ${f.nota}</div>`:''}
         </div>
         <div class="etq-footer">${nomeMarca}</div>
-      </div>` : `
-      <div class="etiqueta-pro">
-        <div class="etq-pro-left">
-          <div class="etq-header">
-            <div class="etq-swatch"></div>
-            <div><div class="etq-nome">${f.nome}</div><div class="etq-material">${f.material}</div></div>
-          </div>
-          <div class="etq-body">
-            ${f.marca ? `<div><span>Marca:</span> ${f.marca}</div>` : ''}
-            ${f.fornecedor ? `<div><span>Fornecedor:</span> ${f.fornecedor}</div>` : ''}
-            ${f.valor ? `<div><span>Valor:</span> R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>` : ''}
-            ${f.nota ? `<div><span>Obs:</span> ${f.nota}</div>` : ''}
-          </div>
-          <div class="etq-footer">${nomeMarca}</div>
-        </div>
-        <div class="etq-pro-right">
-          <img src="${qrDataUrl}" width="72" height="72">
-          <div class="etq-qr-label">Escaneie para ver detalhes</div>
-        </div>
-      </div>`}
-    </body></html>`;
-    const win = window.open('','_blank');
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(()=>{ win.print(); }, 400);
+      </div>
+      <div class="etq-pro-right">
+        <img src="${qrDataUrl}" width="72" height="72">
+        <div class="etq-qr-label">Escaneie para ver detalhes</div>
+      </div>
+    </div>`;
   }
 
-  if(etqModo === 'pro'){
-    const qrUrl = `${window.location.href.split('?')[0]}?filamento=${f.id}`;
-    const qr = qrcode(0, 'M');
-    qr.addData(qrUrl);
-    qr.make();
-    const tmpCanvas = document.createElement('canvas');
-    const size = 72;
-    tmpCanvas.width = size; tmpCanvas.height = size;
-    const ctx = tmpCanvas.getContext('2d');
-    const cells = qr.getModuleCount();
-    const cellSize = size / cells;
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
-    ctx.fillStyle = '#1a2340';
-    for(let r=0;r<cells;r++){
-      for(let c=0;c<cells;c++){
-        if(qr.isDark(r,c)){
-          ctx.fillRect(Math.floor(c*cellSize), Math.floor(r*cellSize), Math.ceil(cellSize), Math.ceil(cellSize));
-        }
-      }
+  let todasEtiquetas = '';
+  for(const f of selecionados){
+    if(etqModo === 'pro'){
+      const qrUrl = `${window.location.href.split('?')[0]}?filamento=${f.id}`;
+      const qrDataUrl = await gerarQR(qrUrl);
+      todasEtiquetas += etqProHtml(f, qrDataUrl);
+    } else {
+      todasEtiquetas += etqSimplesHtml(f);
     }
-    qrDataUrl = tmpCanvas.toDataURL();
-    executarImpressao();
-  } else {
-    executarImpressao();
   }
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Etiquetas D3Arte</title>
+  <style>
+    body{margin:0;padding:20px;font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;}
+    .etiquetas-wrap{display:flex;flex-wrap:wrap;gap:12px;}
+    .etiqueta-simples{width:226px;min-height:142px;border:2px solid #1a2340;border-radius:8px;padding:12px 14px;}
+    .etiqueta-pro{width:280px;min-height:160px;border:2px solid #1a2340;border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start;}
+    .etq-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:2px solid #1a2340;}
+    .etq-swatch{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,0.1);flex-shrink:0;}
+    .etq-nome{font-size:15px;font-weight:800;color:#1a2340;line-height:1.2;}
+    .etq-material{font-size:10px;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;}
+    .etq-body{font-size:11px;color:#3a4a6a;line-height:1.7;}
+    .etq-body span{font-weight:600;color:#1a2340;}
+    .etq-footer{margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f4;font-size:9px;color:#9aa5bf;text-align:right;}
+    .etq-pro-left{flex:1;}
+    .etq-pro-right{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;}
+    .etq-qr-label{font-size:8px;color:#9aa5bf;text-align:center;max-width:72px;line-height:1.3;}
+    @media print{@page{size:auto;margin:10mm;}}
+  </style></head><body>
+  <div class="etiquetas-wrap">${todasEtiquetas}</div>
+  </body></html>`;
+
+  const win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); }, 400);
 });
 // Nav print
 document.getElementById('navPrint').addEventListener('click', (e)=>{
