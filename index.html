@@ -183,14 +183,14 @@
   .filament-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
   .fcard{
     background:var(--bg);border:1px solid var(--line);border-radius:10px;
-    padding:14px;position:relative;display:flex;flex-direction:column;gap:7px;
+    padding:10px;position:relative;display:flex;flex-direction:column;gap:4px;
   }
   .fcard:hover{border-color:#c0cef0;box-shadow:0 2px 8px rgba(45,91,227,0.08);}
-  .fswatch{width:34px;height:34px;border-radius:8px;border:1px solid rgba(0,0,0,0.08);flex-shrink:0;}
+  .fswatch{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);flex-shrink:0;}
   .ftop{display:flex;align-items:center;gap:10px;}
-  .fname{font-weight:700;font-size:13.5px;line-height:1.3;color:var(--ink);}
+  .fname{font-weight:700;font-size:12px;line-height:1.3;color:var(--ink);}
   .ftype{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
-  .fqty{font-size:26px;font-weight:800;color:var(--ink);}
+  .fqty{font-size:20px;font-weight:800;color:var(--ink);}
   .fqty-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
   .fcontrols{display:flex;align-items:center;gap:8px;margin-top:2px;}
   .qty-btn{
@@ -202,8 +202,8 @@
   .qty-btn:disabled{opacity:0.35;cursor:default;}
   .fmeta{font-size:11.5px;color:var(--muted);}
   .fnote{font-size:11.5px;color:var(--muted);font-style:italic;background:#f0f3fa;border-radius:6px;padding:5px 8px;line-height:1.4;}
-  .fcard-img-wrap{display:flex;justify-content:center;margin-bottom:6px;}
-  .fcard-img-wrap svg{width:70px;height:70px;}
+  .fcard-img-wrap{display:flex;justify-content:center;margin-bottom:3px;}
+  .fcard-img-wrap svg{width:48px;height:48px;}
   .fdel{position:absolute;top:8px;right:8px;border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;line-height:1;padding:2px;}
   .fdel:hover{color:var(--accent);}
   .fedit{position:absolute;top:8px;right:28px;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:2px;}
@@ -920,7 +920,7 @@ let db, filaments = [], currentUser = null, editingId = null;
 function setEditMode(f){
   editingId = f.id;
   document.getElementById('formTitle').innerHTML = 'Editar filamento <span class="edit-badge">modo edição</span>';
-  document.getElementById('submitBtn').textContent = '💾 Salvar alterações';
+  document.getElementById('submitBtn').textContent = 'Salvar alterações';
   document.getElementById('cancelEditBtn').style.display = 'block';
   document.getElementById('fNome').value = f.nome || '';
   document.getElementById('fMaterial').value = f.material || '';
@@ -1094,7 +1094,7 @@ async function saveEdit(id, dados){
   btn.disabled=true; btn.textContent='Salvando...'; st.textContent=''; st.classList.remove('error');
   const {data,error}=await db.from('filamentos').update(dados).eq('id',id).select();
   btn.disabled=false;
-  if(error){btn.textContent='💾 Salvar alterações'; st.textContent='Erro: '+error.message;st.classList.add('error');return;}
+  if(error){btn.textContent='Salvar alterações'; st.textContent='Erro: '+error.message;st.classList.add('error');return;}
   const idx = filaments.findIndex(f=>f.id===id);
   if(idx!==-1) filaments[idx] = data[0];
   clearEditMode();
