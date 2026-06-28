@@ -926,6 +926,8 @@
 
 <script>
 const CFG_KEY = 'd3arte_supabase_cfg';
+const SUPABASE_URL = 'https://jfcytkngeoizyshevqbd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Wuu98unzIG1fhFWMnSfOFQ_hVZZtPl9';
 const cfg = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
 const brandName = (cfg && cfg.nome) ? cfg.nome : 'D3Arte';
 let db, filaments = [], currentUser = null, editingId = null;
@@ -1999,7 +2001,7 @@ async function mostrarPaginaPublica(filamentoId){
     return;
   }
   try{
-    const dbPub = window.supabase.createClient(cfg.url, cfg.key);
+    const dbPub = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const {data:f, error} = await dbPub.from('filamentos').select('*').eq('id', filamentoId).single();
     if(error||!f){
       document.getElementById('pubConteudo').innerHTML='<p style="color:#c2461d;">Filamento não encontrado.</p>';
@@ -2061,16 +2063,10 @@ function init(){
     return;
   }
 
-  if(!cfg||!cfg.url||!cfg.key){
-    document.getElementById('configScreen').style.display='flex';
-    return;
-  }
   try{
-    db=window.supabase.createClient(cfg.url,cfg.key);
+    db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   }catch(e){
-    document.getElementById('configScreen').style.display='flex';
-    document.getElementById('cfgError').textContent='Erro: '+e.message;
-    document.getElementById('cfgError').style.display='block';
+    console.error('Erro ao conectar Supabase:',e.message);
     return;
   }
   checkSession();
