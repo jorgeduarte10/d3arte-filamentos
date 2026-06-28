@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>D3Arte | Estoque de Filamentos</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
   :root{
@@ -927,7 +927,7 @@
 <script>
 const CFG_KEY = 'd3arte_supabase_cfg';
 const SUPABASE_URL = 'https://jfcytkngeoizyshevqbd.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Wuu98unzIG1fhFWMnSfOFQ_hVZZtPl9';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmY3l0a25nZW9penlzaGV2cWJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MjQ2NTYsImV4cCI6MjA5ODEwMDY1Nn0.JNZwWS5fQfvLBgfWaZghieS556R94Q2fyYEfqa7Cd6c';
 const cfg = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
 const brandName = (cfg && cfg.nome) ? cfg.nome : 'D3Arte';
 let db, filaments = [], currentUser = null, editingId = null;
@@ -2101,6 +2101,11 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
   const password=document.getElementById('loginPassword').value;
   const err=document.getElementById('loginError'), info=document.getElementById('loginInfo');
   err.style.display='none'; info.style.display='none';
+  if(!email||!password){err.textContent='Preencha e-mail e senha.'; err.style.display='block'; return;}
+  if(!db){
+    try{ db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
+    catch(e){ err.textContent='Erro de conexão: '+e.message; err.style.display='block'; return; }
+  }
   const {data,error}=await db.auth.signInWithPassword({email,password});
   if(error){err.textContent='Erro: '+error.message; err.style.display='block'; return;}
   showApp(data.user);
@@ -2112,12 +2117,16 @@ document.getElementById('signupBtn').addEventListener('click', async ()=>{
   const err=document.getElementById('loginError'), info=document.getElementById('loginInfo');
   err.style.display='none'; info.style.display='none';
   if(!email||!password){err.textContent='Preencha e-mail e senha.'; err.style.display='block'; return;}
+  if(!db){
+    try{ db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
+    catch(e){ err.textContent='Erro de conexão: '+e.message; err.style.display='block'; return; }
+  }
   const {data,error}=await db.auth.signUp({email,password});
   if(error){err.textContent='Erro: '+error.message; err.style.display='block'; return;}
   if(data.session){
     showApp(data.user);
   } else {
-    info.textContent='Conta criada. Verifique seu e-mail para confirmar antes de entrar.';
+    info.textContent='Conta criada! Verifique seu e-mail para confirmar antes de entrar.';
     info.style.display='block';
   }
 });
