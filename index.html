@@ -202,8 +202,8 @@
   .qty-btn:disabled{opacity:0.35;cursor:default;}
   .fmeta{font-size:11.5px;color:var(--muted);}
   .fnote{font-size:11.5px;color:var(--muted);font-style:italic;background:#f0f3fa;border-radius:6px;padding:5px 8px;line-height:1.4;}
-  .fcard-img-wrap{display:flex;justify-content:center;margin-bottom:3px;}
-  .fcard-img-wrap svg{width:48px;height:48px;}
+  .fcard-img-wrap{display:flex;justify-content:center;margin-bottom:0;}
+  .fcard-img-wrap svg{width:58px;height:58px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.18));}
   .fdel{position:absolute;top:8px;right:8px;border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;line-height:1;padding:2px;}
   .fdel:hover{color:var(--accent);}
   .fedit{position:absolute;top:8px;right:28px;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:2px;}
@@ -1024,7 +1024,22 @@ function render(){
       <button class="fedit" data-id="${f.id}" aria-label="Editar">✏️</button>
       <button class="fdel" data-id="${f.id}" aria-label="Remover">&times;</button>
       <div class="ftop">
-        <div class="fswatch" style="background:${f.cor || '#cccccc'}"></div>
+        <div class="fcard-img-wrap">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+            <!-- Rolo externo -->
+            <circle cx="50" cy="50" r="46" fill="${f.cor || '#cccccc'}" stroke="#00000022" stroke-width="1"/>
+            <!-- Camadas do filamento enrolado -->
+            <circle cx="50" cy="50" r="38" fill="${f.cor || '#cccccc'}" stroke="#00000018" stroke-width="5"/>
+            <circle cx="50" cy="50" r="30" fill="${f.cor || '#cccccc'}" stroke="#00000015" stroke-width="4"/>
+            <circle cx="50" cy="50" r="23" fill="${f.cor || '#cccccc'}" stroke="#00000012" stroke-width="3"/>
+            <!-- Aro interno (plástico cinza) -->
+            <circle cx="50" cy="50" r="16" fill="#d0d0d0" stroke="#b0b0b0" stroke-width="1.5"/>
+            <!-- Buraco central -->
+            <circle cx="50" cy="50" r="8" fill="#f0f0f0" stroke="#c0c0c0" stroke-width="1"/>
+            <!-- Reflexo de luz -->
+            <ellipse cx="38" cy="34" rx="7" ry="4" fill="white" opacity="0.25" transform="rotate(-35 38 34)"/>
+          </svg>
+        </div>
         <div>
           <div class="fname">${f.nome}</div>
           <div class="ftype">${f.material}</div>
