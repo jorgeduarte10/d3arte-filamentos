@@ -559,6 +559,10 @@
         <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Histórico de uso
       </a>
+      <a class="nav-item" href="#" id="navAdmin" style="display:none;">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>
+        Admin
+      </a>
     </nav>
     <div class="sidebar-footer">
       <div class="sidebar-avatar" id="sidebarAvatar">D</div>
@@ -908,6 +912,60 @@
               </select>
             </div>
             <div id="histTelaConteudo"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TELA ADMIN -->
+      <div class="tela" id="telaAdmin">
+        <div class="calc-wrap" style="max-width:900px;">
+          <div class="calc-card">
+            <div class="panel-title"><span class="pticon">👑</span> Painel Admin</div>
+
+            <div class="summary-cards" style="margin-top:14px;margin-bottom:20px;">
+              <div class="scard">
+                <div class="scard-icon" style="background:#e7f0ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d5be3" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                <div class="scard-info">
+                  <div class="slabel">TOTAL DE CLIENTES</div>
+                  <div class="svalue" id="admTotalClientes">0</div>
+                  <div class="sdesc">cadastrados</div>
+                </div>
+              </div>
+              <div class="scard">
+                <div class="scard-icon" style="background:#fff4e0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e89a1c" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                <div class="scard-info">
+                  <div class="slabel">EM TRIAL</div>
+                  <div class="svalue" id="admTotalTrial">0</div>
+                  <div class="sdesc">testando agora</div>
+                </div>
+              </div>
+              <div class="scard">
+                <div class="scard-icon" style="background:#e6f9ee;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1fa85c" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg></div>
+                <div class="scard-info">
+                  <div class="slabel">VAGAS FUNDADOR</div>
+                  <div class="svalue" id="admVagasFundador">20</div>
+                  <div class="sdesc" id="admVagasFundadorDesc">de 20 restantes</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-title" style="font-size:14px;margin-bottom:10px;">Lista de clientes</div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                  <tr style="text-align:left;border-bottom:2px solid var(--line);color:var(--muted);">
+                    <th style="padding:8px 10px;">E-mail</th>
+                    <th style="padding:8px 10px;">Cadastro</th>
+                    <th style="padding:8px 10px;">Status</th>
+                    <th style="padding:8px 10px;">Plano</th>
+                    <th style="padding:8px 10px;">Vencimento</th>
+                  </tr>
+                </thead>
+                <tbody id="admClientesTable">
+                  <tr><td colspan="5" style="padding:14px;color:var(--muted);">Carregando...</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1308,6 +1366,13 @@ document.getElementById('navHistorico').addEventListener('click', (e)=>{
   sel.innerHTML = '<option value="">Selecione um filamento...</option>' +
     filaments.map(f=>`<option value="${f.id}">${f.nome} — ${f.material}</option>`).join('');
   document.getElementById('histTelaConteudo').innerHTML = '';
+});
+
+document.getElementById('navAdmin').addEventListener('click', (e)=>{
+  e.preventDefault();
+  mostrarTela('telaAdmin');
+  document.getElementById('navAdmin').classList.add('active');
+  carregarPainelAdmin();
 });
 
 document.getElementById('histFilSelect').addEventListener('change', async ()=>{
@@ -2118,6 +2183,8 @@ async function checkSession(){
   }
 }
 
+const ADMIN_EMAIL = 'jorgge_duarte@hotmail.com';
+
 function showApp(user){
   currentUser = user;
   document.getElementById('loginScreen').style.display='none';
@@ -2129,8 +2196,49 @@ function showApp(user){
   document.getElementById('sidebarClientName').textContent = nomeUsuario;
   document.getElementById('sidebarAvatar').textContent = nomeUsuario.charAt(0).toUpperCase();
   document.getElementById('userGreeting').textContent = 'Olá, ' + nomeUsuario + '!';
+  if(user.email === ADMIN_EMAIL){
+    document.getElementById('navAdmin').style.display = 'flex';
+  }
   loadFilaments();
   checkWelcome();
+}
+
+async function carregarPainelAdmin(){
+  const tbody = document.getElementById('admClientesTable');
+  tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;color:var(--muted);">Carregando...</td></tr>';
+  const { data, error } = await db.from('assinaturas').select('*').order('criado_em', { ascending: false });
+  if(error){
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:14px;color:#d33;">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+  const lista = data || [];
+  const totalClientes = lista.length;
+  const totalTrial = lista.filter(c => c.status === 'trial').length;
+  const totalFundador = lista.filter(c => c.plano === 'fundador').length;
+  const vagasRestantes = Math.max(0, 20 - totalFundador);
+
+  document.getElementById('admTotalClientes').textContent = totalClientes;
+  document.getElementById('admTotalTrial').textContent = totalTrial;
+  document.getElementById('admVagasFundador').textContent = vagasRestantes;
+  document.getElementById('admVagasFundadorDesc').textContent = `de 20 restantes`;
+
+  if(!lista.length){
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;color:var(--muted);">Nenhum cliente cadastrado ainda.</td></tr>';
+    return;
+  }
+
+  const statusLabel = { trial:'🟡 Trial', fundador:'🟢 Fundador', ativo:'🟢 Ativo', vencido:'🔴 Vencido' };
+  const planoLabel = { trial:'—', fundador:'Fundador (R$ 39,90 único)', recorrente:'Recorrente (R$ 9,90/mês)' };
+
+  tbody.innerHTML = lista.map(c => `
+    <tr style="border-bottom:1px solid var(--line);">
+      <td style="padding:8px 10px;">${c.email || '—'}</td>
+      <td style="padding:8px 10px;">${c.criado_em ? new Date(c.criado_em).toLocaleDateString('pt-BR') : '—'}</td>
+      <td style="padding:8px 10px;">${statusLabel[c.status] || c.status || '—'}</td>
+      <td style="padding:8px 10px;">${planoLabel[c.plano] || c.plano || '—'}</td>
+      <td style="padding:8px 10px;">${c.vencimento ? new Date(c.vencimento).toLocaleDateString('pt-BR') : '—'}</td>
+    </tr>
+  `).join('');
 }
 
 document.getElementById('loginBtn').addEventListener('click', async ()=>{
