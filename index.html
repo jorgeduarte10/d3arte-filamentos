@@ -959,6 +959,7 @@
                     <th style="padding:8px 10px;">Status</th>
                     <th style="padding:8px 10px;">Plano</th>
                     <th style="padding:8px 10px;">Vencimento</th>
+                    <th style="padding:8px 10px;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="admClientesTable">
@@ -2205,10 +2206,10 @@ function showApp(user){
 
 async function carregarPainelAdmin(){
   const tbody = document.getElementById('admClientesTable');
-  tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;color:var(--muted);">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--muted);">Carregando...</td></tr>';
   const { data, error } = await db.from('assinaturas').select('*').order('criado_em', { ascending: false });
   if(error){
-    tbody.innerHTML = `<tr><td colspan="5" style="padding:14px;color:#d33;">Erro: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:14px;color:#d33;">Erro: ${error.message}</td></tr>`;
     return;
   }
   const lista = data || [];
@@ -2223,11 +2224,11 @@ async function carregarPainelAdmin(){
   document.getElementById('admVagasFundadorDesc').textContent = `de 20 restantes`;
 
   if(!lista.length){
-    tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;color:var(--muted);">Nenhum cliente cadastrado ainda.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--muted);">Nenhum cliente cadastrado ainda.</td></tr>';
     return;
   }
 
-  const statusLabel = { trial:'🟡 Trial', fundador:'🟢 Fundador', ativo:'🟢 Ativo', vencido:'🔴 Vencido' };
+  const statusLabel = { trial:'🟡 Trial', fundador:'🟢 Fundador', ativo:'🟢 Ativo', vencido:'🔴 Vencido', liberado:'🔓 Liberado', bloqueado:'⛔ Bloqueado' };
   const planoLabel = { trial:'—', fundador:'Fundador (R$ 39,90 único)', recorrente:'Recorrente (R$ 9,90/mês)' };
 
   tbody.innerHTML = lista.map(c => `
@@ -2237,8 +2238,29 @@ async function carregarPainelAdmin(){
       <td style="padding:8px 10px;">${statusLabel[c.status] || c.status || '—'}</td>
       <td style="padding:8px 10px;">${planoLabel[c.plano] || c.plano || '—'}</td>
       <td style="padding:8px 10px;">${c.vencimento ? new Date(c.vencimento).toLocaleDateString('pt-BR') : '—'}</td>
+      <td style="padding:8px 10px;white-space:nowrap;">
+        ${c.status === 'bloqueado'
+          ? `<button class="admin-action-btn" data-id="${c.id}" data-action="liberar" style="background:#1fa85c;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;">Liberar</button>`
+          : `<button class="admin-action-btn" data-id="${c.id}" data-action="bloquear" style="background:#d33;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;">Bloquear</button>`
+        }
+      </td>
     </tr>
   `).join('');
+
+  document.querySelectorAll('.admin-action-btn').forEach(btn => {
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      btn.disabled = true;
+      btn.textContent = '...';
+      const novoStatus = action === 'liberar' ? 'liberado' : 'bloqueado';
+      const { error: updError } = await db.from('assinaturas').update({ status: novoStatus }).eq('id', id);
+      if(updError){
+        alert('Erro ao atualizar: ' + updError.message);
+      }
+      carregarPainelAdmin();
+    });
+  });
 }
 
 document.getElementById('loginBtn').addEventListener('click', async ()=>{
