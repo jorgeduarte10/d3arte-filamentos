@@ -214,7 +214,7 @@
 
   /* CONFIG / LOGIN */
   .auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;background:var(--bg);}
-  .auth-box{background:var(--surface);border-radius:14px;padding:32px;width:90%;max-width:420px;box-shadow:0 4px 24px rgba(30,42,58,0.10);border:1px solid var(--line);}
+  .auth-box{background:var(--surface);border-radius:14px;padding:32px;width:90%;max-width:420px;box-shadow:0 4px 24px rgba(30,42,58,0.10);border:1px solid var(--line);display:flex;flex-direction:column;}
   .auth-box h2{font-family:Georgia,serif;font-size:20px;font-weight:400;margin-bottom:6px;color:var(--ink);}
   .auth-box p{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:18px;}
   .auth-box label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;margin-top:10px;text-transform:uppercase;letter-spacing:0.5px;}
@@ -515,7 +515,7 @@
   </div>
 
   <!-- TELA DE CADASTRO -->
-  <div class="auth-box" id="boxCadastro" style="display:none;">
+  <div class="auth-box" id="boxCadastro" style="display:none;flex-direction:column;">
     <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
     <h2>Criar conta</h2>
     <p>Preencha os dados para começar seus 7 dias grátis.</p>
