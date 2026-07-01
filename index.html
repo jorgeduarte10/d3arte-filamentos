@@ -497,7 +497,8 @@
 
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" style="display:none;" class="auth-wrap">
-  <div class="auth-box">
+  <!-- TELA DE LOGIN -->
+  <div class="auth-box" id="boxLogin">
     <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
     <h2>Entrar</h2>
     <p>Acesse com seu e-mail e senha.</p>
@@ -506,9 +507,29 @@
     <label>Senha</label>
     <input type="password" id="loginPassword" placeholder="••••••••">
     <button class="btn-primary" id="loginBtn">Entrar</button>
-    <button class="btn-secondary" id="signupBtn">Criar conta</button>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
+      Não tem conta? <a href="#" id="irParaCadastro" style="color:var(--accent);font-weight:600;text-decoration:none;">Criar conta</a>
+    </div>
     <div class="auth-status error" id="loginError" style="display:none;"></div>
     <div class="auth-status" id="loginInfo" style="display:none;"></div>
+  </div>
+
+  <!-- TELA DE CADASTRO -->
+  <div class="auth-box" id="boxCadastro" style="display:none;">
+    <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
+    <h2>Criar conta</h2>
+    <p>Preencha os dados para começar seus 7 dias grátis.</p>
+    <label>E-mail</label>
+    <input type="email" id="cadastroEmail" placeholder="voce@email.com">
+    <label>Senha</label>
+    <input type="password" id="cadastroSenha" placeholder="Mínimo 6 caracteres">
+    <label>Confirmar senha</label>
+    <input type="password" id="cadastroConfirmar" placeholder="Repita a senha">
+    <button class="btn-primary" id="cadastroBtn">Criar conta grátis</button>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
+      Já tem conta? <a href="#" id="irParaLogin" style="color:var(--accent);font-weight:600;text-decoration:none;">Entrar</a>
+    </div>
+    <div class="auth-status error" id="cadastroError" style="display:none;"></div>
   </div>
 </div>
 
@@ -2278,23 +2299,56 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
   showApp(data.user);
 });
 
-document.getElementById('signupBtn').addEventListener('click', async ()=>{
-  const email=document.getElementById('loginEmail').value.trim();
-  const password=document.getElementById('loginPassword').value;
-  const err=document.getElementById('loginError'), info=document.getElementById('loginInfo');
-  err.style.display='none'; info.style.display='none';
-  if(!email||!password){err.textContent='Preencha e-mail e senha.'; err.style.display='block'; return;}
+// Alternar entre login e cadastro
+document.getElementById('irParaCadastro').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('boxLogin').style.display='none';
+  document.getElementById('boxCadastro').style.display='flex';
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('loginInfo').style.display='none';
+});
+
+document.getElementById('irParaLogin').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('boxCadastro').style.display='none';
+  document.getElementById('boxLogin').style.display='flex';
+  document.getElementById('cadastroError').style.display='none';
+});
+
+document.getElementById('cadastroBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('cadastroEmail').value.trim();
+  const senha = document.getElementById('cadastroSenha').value;
+  const confirmar = document.getElementById('cadastroConfirmar').value;
+  const err = document.getElementById('cadastroError');
+  err.style.display='none';
+
+  if(!email || !senha || !confirmar){
+    err.textContent='Preencha todos os campos.'; err.style.display='block'; return;
+  }
+  if(senha.length < 6){
+    err.textContent='A senha deve ter pelo menos 6 caracteres.'; err.style.display='block'; return;
+  }
+  if(senha !== confirmar){
+    err.textContent='As senhas não coincidem.'; err.style.display='block'; return;
+  }
   if(!db){
     try{ db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
     catch(e){ err.textContent='Erro de conexão: '+e.message; err.style.display='block'; return; }
   }
-  const {data,error}=await db.auth.signUp({email,password});
-  if(error){err.textContent='Erro: '+error.message; err.style.display='block'; return;}
+
+  const btn = document.getElementById('cadastroBtn');
+  btn.disabled = true; btn.textContent = 'Criando conta...';
+
+  const {data, error} = await db.auth.signUp({email, password: senha});
+  btn.disabled = false; btn.textContent = 'Criar conta grátis';
+
+  if(error){ err.textContent='Erro: '+error.message; err.style.display='block'; return; }
   if(data.session){
     showApp(data.user);
   } else {
-    info.textContent='Conta criada! Verifique seu e-mail para confirmar antes de entrar.';
-    info.style.display='block';
+    err.style.color='#1fa85c';
+    err.textContent='Conta criada com sucesso! Verifique seu e-mail para confirmar.';
+    err.style.display='block';
   }
 });
 
