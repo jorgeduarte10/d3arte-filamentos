@@ -2078,7 +2078,8 @@ document.body.appendChild(hiddenPrint);
 // Welcome modal
 const WELCOME_KEY = 'd3arte_welcome_shown';
 function checkWelcome(){
-  if(!localStorage.getItem(WELCOME_KEY)){
+  const welcomeKey = WELCOME_KEY + '_' + (currentUser ? currentUser.id : 'guest');
+  if(!localStorage.getItem(welcomeKey)){
     document.getElementById('welcomeModal').classList.add('open');
   }
   const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
@@ -2106,7 +2107,8 @@ document.getElementById('welcomeClose').addEventListener('click', ()=>{
   document.title = nome + ' | Estoque de Filamentos';
   document.getElementById('userGreeting').textContent = 'Olá, ' + nome + '!';
   document.getElementById('welcomeModal').classList.remove('open');
-  localStorage.setItem(WELCOME_KEY, '1');
+  const welcomeKey = WELCOME_KEY + '_' + (currentUser ? currentUser.id : 'guest');
+  localStorage.setItem(welcomeKey, '1');
 });
 
 document.getElementById('cfgSave').addEventListener('click',()=>{
