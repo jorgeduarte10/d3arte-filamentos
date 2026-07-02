@@ -525,7 +525,7 @@
     <input type="password" id="cadastroSenha" placeholder="Mínimo 6 caracteres">
     <label>Confirmar senha</label>
     <input type="password" id="cadastroConfirmar" placeholder="Repita a senha">
-    <button class="btn-primary" id="cadastroBtn">Criar conta grátis</button>
+    <button class="btn-primary" id="cadastroBtn">Criar conta</button>
     <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
       Já tem conta? <a href="#" id="irParaLogin" style="color:var(--accent);font-weight:600;text-decoration:none;">Entrar</a>
     </div>
@@ -2340,9 +2340,17 @@ document.getElementById('cadastroBtn').addEventListener('click', async ()=>{
   btn.disabled = true; btn.textContent = 'Criando conta...';
 
   const {data, error} = await db.auth.signUp({email, password: senha});
-  btn.disabled = false; btn.textContent = 'Criar conta grátis';
+  btn.disabled = false; btn.textContent = 'Criar conta';
 
-  if(error){ err.textContent='Erro: '+error.message; err.style.display='block'; return; }
+  if(error){
+    const msg = error.message || JSON.stringify(error);
+    if(msg.includes('already') || msg.includes('registered') || msg === '{}' || !msg){
+      err.textContent='Este e-mail já está cadastrado. Tente entrar ou use outro e-mail.';
+    } else {
+      err.textContent='Erro: '+msg;
+    }
+    err.style.display='block'; return;
+  }
   if(data.session){
     showApp(data.user);
   } else {
