@@ -2252,6 +2252,9 @@ async function verificarTrialBackground(user){
 async function mostrarTelaBloqueio(ass){
   const bloqueio = document.getElementById('bloqueioScreen');
   bloqueio.style.display = 'flex';
+  bloqueio.style.flexDirection = 'column';
+  bloqueio.style.alignItems = 'center';
+  bloqueio.style.justifyContent = 'center';
 
   // Verifica quantos fundadores já existem
   const { data: fundadores } = await db.from('assinaturas').select('id').eq('plano','fundador');
@@ -2417,7 +2420,7 @@ document.getElementById('logoutBtn').addEventListener('click', async ()=>{
 
 init();
 </script>
-<div id="bloqueioScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#f0f2f8;z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
+<div id="bloqueioScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#f0f2f8;z-index:9999;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
   <div style="background:#fff;border-radius:16px;padding:36px 32px;max-width:440px;width:100%;box-shadow:0 4px 24px rgba(30,42,58,0.12);border:1px solid #e2e8f4;text-align:center;">
     <div style="font-family:Georgia,serif;font-size:22px;color:#1a2340;margin-bottom:6px;font-weight:400;">D3Arte</div>
     <div style="font-size:40px;margin-bottom:12px;">⏳</div>
