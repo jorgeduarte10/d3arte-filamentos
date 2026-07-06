@@ -2207,34 +2207,10 @@ async function checkSession(){
 
 const ADMIN_EMAIL = 'jorgge_duarte@hotmail.com';
 
-async function showApp(user){
+function showApp(user){
   currentUser = user;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('configScreen').style.display='none';
-
-  // Admin bypassa verificação de trial
-  if(user.email !== ADMIN_EMAIL){
-    try {
-      const { data: assData, error: assError } = await db.from('assinaturas').select('*').eq('user_id', user.id).single();
-      if(!assError && assData){
-        const status = assData.status;
-        const trialFim = assData.trial_fim ? new Date(assData.trial_fim) : null;
-        const trialVencido = trialFim && new Date() > trialFim;
-        const statusLivre = ['liberado','fundador','ativo'];
-        if(status === 'bloqueado' || (trialVencido && !statusLivre.includes(status))){
-          if(trialVencido && status === 'trial'){
-            await db.from('assinaturas').update({status:'vencido'}).eq('user_id', user.id);
-          }
-          mostrarTelaBloqueio(assData);
-          return;
-        }
-      }
-    } catch(e) {
-      console.error('Erro ao verificar assinatura:', e);
-      // Em caso de erro, deixa entrar normalmente
-    }
-  }
-
   document.getElementById('appScreen').style.display='flex';
   const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
   const nomeUsuario = cfgAtual.nome || user.email;
@@ -2247,6 +2223,30 @@ async function showApp(user){
   }
   loadFilaments();
   checkWelcome();
+  // Verifica trial em background sem bloquear o app
+  if(user.email !== ADMIN_EMAIL){
+    verificarTrialBackground(user);
+  }
+}
+
+async function verificarTrialBackground(user){
+  try {
+    const { data: assData, error } = await db.from('assinaturas').select('*').eq('user_id', user.id).single();
+    if(error || !assData) return;
+    const status = assData.status;
+    const trialFim = assData.trial_fim ? new Date(assData.trial_fim) : null;
+    const trialVencido = trialFim && new Date() > trialFim;
+    const statusLivre = ['liberado','fundador','ativo'];
+    if(status === 'bloqueado' || (trialVencido && !statusLivre.includes(status))){
+      if(trialVencido && status === 'trial'){
+        await db.from('assinaturas').update({status:'vencido'}).eq('user_id', user.id);
+      }
+      document.getElementById('appScreen').style.display='none';
+      mostrarTelaBloqueio(assData);
+    }
+  } catch(e) {
+    console.error('Erro ao verificar trial:', e);
+  }
 }
 
 async function mostrarTelaBloqueio(ass){
