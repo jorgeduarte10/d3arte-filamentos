@@ -1004,9 +1004,7 @@
       </div>
 
     </div>
-  </div>
-</div>
-
+  
 <script>
 const CFG_KEY = 'd3arte_supabase_cfg';
 const SUPABASE_URL = 'https://jfcytkngeoizyshevqbd.supabase.co';
@@ -2436,6 +2434,47 @@ init();
       <button id="btnRecorrente" style="width:100%;background:#1a2340;color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Assinar agora</button>
     </div>
     <button onclick="db.auth.signOut().then(()=>{location.reload()})" style="background:none;border:none;color:#9aa5bf;font-size:12px;cursor:pointer;margin-top:8px;">Sair da conta</button>
+  </div>
+</div>
+
+<script>
+async function iniciarPagamento(plano){
+  const btn = document.getElementById(plano === 'fundador' ? 'btnFundador' : 'btnRecorrente');
+  const txtOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Aguarde...';
+  try {
+    const resp = await fetch('/api/create-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plano,
+        email: currentUser ? currentUser.email : '',
+        userId: currentUser ? currentUser.id : ''
+      })
+    });
+    const data = await resp.json();
+    if(data.init_point){
+      window.location.href = data.init_point;
+    } else {
+      alert('Erro ao iniciar pagamento: ' + (data.error || 'Tente novamente'));
+      btn.disabled = false;
+      btn.textContent = txtOriginal;
+    }
+  } catch(e) {
+    alert('Erro de conexão. Tente novamente.');
+    btn.disabled = false;
+    btn.textContent = txtOriginal;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btnF = document.getElementById('btnFundador');
+  const btnR = document.getElementById('btnRecorrente');
+  if(btnF) btnF.addEventListener('click', ()=> iniciarPagamento('fundador'));
+  if(btnR) btnR.addEventListener('click', ()=> iniciarPagamento('recorrente'));
+});
+</script>
   </div>
 </div>
 </body>
