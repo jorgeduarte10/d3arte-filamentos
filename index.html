@@ -2223,10 +2223,6 @@ function showApp(user){
   }
   loadFilaments();
   checkWelcome();
-  // Verifica trial em background sem bloquear o app
-  if(user.email !== ADMIN_EMAIL){
-    verificarTrialBackground(user);
-  }
 }
 
 async function verificarTrialBackground(user){
