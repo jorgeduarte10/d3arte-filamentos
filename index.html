@@ -1208,7 +1208,6 @@ async function loadFilaments(){
           if(trialVencido && ass.status === 'trial'){
             await db.from('assinaturas').update({status:'vencido'}).eq('user_id',currentUser.id);
           }
-          document.getElementById('appScreen').style.display='none';
           mostrarTelaBloqueio(ass);
           return;
         }
