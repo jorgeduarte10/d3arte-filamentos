@@ -1196,6 +1196,25 @@ function render(){
 }
 
 async function loadFilaments(){
+  // Verifica trial antes de carregar
+  if(currentUser && currentUser.email !== ADMIN_EMAIL){
+    try{
+      const {data:ass} = await db.from('assinaturas').select('*').eq('user_id',currentUser.id).single();
+      if(ass){
+        const statusLivre = ['liberado','fundador','ativo'];
+        const trialFim = ass.trial_fim ? new Date(ass.trial_fim) : null;
+        const trialVencido = trialFim && new Date() > trialFim;
+        if(ass.status === 'bloqueado' || (trialVencido && !statusLivre.includes(ass.status))){
+          if(trialVencido && ass.status === 'trial'){
+            await db.from('assinaturas').update({status:'vencido'}).eq('user_id',currentUser.id);
+          }
+          document.getElementById('appScreen').style.display='none';
+          mostrarTelaBloqueio(ass);
+          return;
+        }
+      }
+    }catch(e){ console.error('Erro verificar trial:',e); }
+  }
   const st=document.getElementById('loadStatus');
   st.style.display='block'; st.textContent='Carregando dados...'; st.classList.remove('error');
   const {data,error}=await db.from('filamentos').select('*').order('nome');
