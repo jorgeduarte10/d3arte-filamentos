@@ -39,6 +39,9 @@ module.exports = async (req, res) => {
         items: [item],
         payer: { email },
         external_reference: `${userId}|${plano}`,
+        payment_methods: {
+          installments: 1,
+        },
         back_urls: {
           success: `https://d3arte-filamentos.vercel.app?pagamento=sucesso&plano=${plano}&user=${userId}`,
           failure: `https://d3arte-filamentos.vercel.app?pagamento=falha`,
