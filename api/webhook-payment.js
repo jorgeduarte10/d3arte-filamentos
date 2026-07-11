@@ -10,6 +10,35 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+async function enviarEmailNotificacao(plano, valor, emailCliente, userId) {
+  try {
+    const nomePlano = plano === 'fundador' ? 'Plano Fundador' : 'Plano Mensal';
+
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'D3Arte Filamentos <onboarding@resend.dev>',
+        to: 'jorgge_duarte@hotmail.com',
+        subject: `💰 Nova venda: ${nomePlano} - R$ ${valor}`,
+        html: `
+          <h2>Novo pagamento aprovado!</h2>
+          <p><strong>Plano:</strong> ${nomePlano}</p>
+          <p><strong>Valor:</strong> R$ ${valor}</p>
+          <p><strong>Cliente:</strong> ${emailCliente}</p>
+          <p><strong>User ID:</strong> ${userId}</p>
+          <p>O acesso já foi liberado automaticamente no sistema.</p>
+        `,
+      }),
+    });
+  } catch (emailErr) {
+    console.error('Erro ao enviar e-mail de notificação:', emailErr);
+  }
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -61,6 +90,14 @@ module.exports = async (req, res) => {
         vencimento: vencimento ? vencimento.toISOString() : null,
       })
       .eq('user_id', userId);
+
+    // Envia e-mail avisando o Jorge da nova venda
+    await enviarEmailNotificacao(
+      novoPlano,
+      paymentData.transaction_amount,
+      paymentData.payer?.email || 'não informado',
+      userId
+    );
 
     return res.status(200).json({ ok: true, plano: novoPlano, userId });
   } catch (err) {
