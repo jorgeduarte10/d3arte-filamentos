@@ -2,6 +2,7 @@
   "name": "d3arte-filamentos",
   "version": "1.0.0",
   "dependencies": {
-    "mercadopago": "^2.0.6"
+    "mercadopago": "^2.0.6",
+    "@supabase/supabase-js": "^2.45.0"
   }
 }
