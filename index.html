@@ -2220,7 +2220,10 @@ async function checkSession(){
     showApp(data.session.user);
   } else {
     document.getElementById('loginScreen').style.display='flex';
-  }
+if(new URLSearchParams(window.location.search).get('cadastro')){
+      document.getElementById('boxLogin').style.display='none';
+      document.getElementById('boxCadastro').style.display='flex';
+    } }
 }
 
 const ADMIN_EMAIL = 'jorgge_duarte@hotmail.com';
