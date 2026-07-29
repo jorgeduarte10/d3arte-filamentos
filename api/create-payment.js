@@ -42,10 +42,10 @@ module.exports = async (req, res) => {
         payment_methods: {
           installments: 1,
         },
-        back_urls: {
-          success: `https://d3arte-filamentos.vercel.app?pagamento=sucesso&plano=${plano}&user=${userId}`,
-          failure: `https://d3arte-filamentos.vercel.app?pagamento=falha`,
-          pending: `https://d3arte-filamentos.vercel.app?pagamento=pendente`,
+      back_urls: {
+          success: `https://d3arte-filamentos.vercel.app/app?pagamento=sucesso&plano=${plano}&user=${userId}`,
+          failure: `https://d3arte-filamentos.vercel.app/app?pagamento=falha`,
+          pending: `https://d3arte-filamentos.vercel.app/app?pagamento=pendente`,
         },
         auto_return: 'approved',
         notification_url: 'https://d3arte-filamentos.vercel.app/api/webhook-payment',
