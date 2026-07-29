@@ -1,0 +1,2501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D3Arte | Estoque de Filamentos</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  :root{
+    --sidebar:#1a2340;
+    --sidebar-hover:#2a3560;
+    --sidebar-active:#2d3d6b;
+    --topbar:#e8f0fe;
+    --topbar-text:#1a2340;
+    --bg:#f4f6fb;
+    --surface:#ffffff;
+    --ink:#1e2a3a;
+    --muted:#6b7a99;
+    --accent:#c2461d;
+    --accent-light:#f5e2d8;
+    --blue:#2d5be3;
+    --blue-light:#e8f0fe;
+    --good:#1a7a4a;
+    --good-light:#e0f5ea;
+    --warn:#b8860b;
+    --warn-light:#fbf0d9;
+    --line:#e2e8f4;
+    --card-shadow:0 2px 8px rgba(30,42,58,0.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{
+    width:240px;min-height:100vh;background:#1a2035;
+    display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100%;z-index:100;
+  }
+  .sidebar-brand{
+    padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,0.07);
+  }
+  .sidebar-brand .app-name{
+    font-family:Georgia,serif;font-size:22px;color:#fff;letter-spacing:0.5px;font-weight:400;
+  }
+  .sidebar-nav{padding:10px 0;flex:1;}
+  .nav-item{
+    display:flex;align-items:center;gap:13px;padding:12px 20px;
+    color:rgba(255,255,255,0.55);font-size:13.5px;cursor:pointer;
+    transition:background 0.15s,color 0.15s;text-decoration:none;
+    border-radius:0;position:relative;
+  }
+  .nav-item:hover{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.9);}
+  .nav-item.active{background:#2d5be3;color:#fff;font-weight:600;}
+  .nav-item.active .nav-svg{opacity:1;}
+  .nav-item .nav-svg{width:18px;height:18px;flex-shrink:0;opacity:0.6;}
+  .nav-item:hover .nav-svg{opacity:0.9;}
+  .nav-item.active .nav-svg{opacity:1;}
+  .nav-badge{
+    margin-left:auto;background:#f97316;color:#fff;
+    border-radius:12px;font-size:11px;font-weight:700;
+    padding:2px 7px;min-width:20px;text-align:center;
+  }
+  .nav-parent{justify-content:space-between;}
+  .nav-parent .nav-left{display:flex;align-items:center;gap:13px;}
+  .nav-arrow{font-size:11px;color:rgba(255,255,255,0.3);transition:transform 0.2s;}
+  .nav-parent.open .nav-arrow{transform:rotate(90deg);}
+  .nav-submenu{background:rgba(0,0,0,0.15);}
+  .nav-subitem{
+    display:block;padding:9px 20px 9px 51px;
+    color:rgba(255,255,255,0.45);font-size:13px;cursor:pointer;text-decoration:none;
+    transition:background 0.15s,color 0.15s;
+  }
+  .nav-subitem:hover{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.85);}
+  .sidebar-footer{
+    padding:16px 14px;border-top:1px solid rgba(255,255,255,0.07);
+    display:flex;align-items:center;gap:10px;
+  }
+  .sidebar-avatar{
+    width:34px;height:34px;border-radius:50%;
+    background:#2d5be3;color:#fff;font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .sidebar-footer-text{overflow:hidden;}
+  .sidebar-footer-name{font-size:13px;font-weight:600;color:rgba(255,255,255,0.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sidebar-footer-sub{font-size:11px;color:rgba(255,255,255,0.35);margin-top:1px;}
+
+  /* MAIN */
+  .main-content{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+
+  /* TOPBAR */
+  .topbar{
+    background:var(--topbar);padding:20px 32px;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:1px solid #d0daf0;
+  }
+  .topbar-left .greeting{font-size:18px;font-weight:700;color:var(--topbar-text);}
+  .topbar-left .subtitle{font-size:13px;color:#4a5a80;margin-top:3px;}
+  .topbar-right{display:flex;gap:8px;align-items:center;}
+  .btn-suporte{
+    display:flex;align-items:center;gap:7px;
+    background:var(--blue);color:#fff;border:none;
+    border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;
+    cursor:pointer;text-decoration:none;
+  }
+  .btn-suporte:hover{background:#1e45b8;}
+  .btn-notif{
+    position:relative;width:38px;height:38px;
+    background:#fff;border:1px solid var(--line);
+    border-radius:8px;display:flex;align-items:center;
+    justify-content:center;cursor:pointer;text-decoration:none;color:var(--ink);
+    font-size:16px;
+  }
+  .btn-notif:hover{background:var(--bg);}
+  .notif-badge{
+    position:absolute;top:-6px;right:-6px;
+    background:#f97316;color:#fff;border-radius:10px;
+    font-size:10px;font-weight:700;padding:2px 6px;
+    min-width:18px;text-align:center;display:none;
+  }
+  .btn-sair{
+    background:#fff;color:var(--ink);
+    border:1px solid var(--line);
+    border-radius:8px;padding:8px 18px;font-size:13px;font-weight:500;cursor:pointer;
+  }
+  .btn-sair:hover{background:var(--bg);}
+
+  /* PAGE CONTENT */
+  .page{padding:28px 32px;flex:1;}
+
+  /* CARDS RESUMO */
+  .summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+  .scard{background:var(--surface);border-radius:14px;padding:20px 22px;box-shadow:0 1px 4px rgba(30,42,58,0.08);border:1px solid var(--line);display:flex;align-items:center;gap:16px;}
+  .scard-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .scard-icon.blue{background:#e8f0fe;}
+  .scard-icon.green{background:#e6f9f0;}
+  .scard-icon.orange{background:#fff3e8;}
+  .scard-icon svg{width:26px;height:26px;}
+  .scard-info .slabel{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;font-weight:500;}
+  .scard-info .svalue{font-size:28px;font-weight:800;color:var(--ink);line-height:1.1;}
+  .scard-info .svalue.accent{color:#f97316;}
+  .scard-info .sdesc{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  /* GRID PRINCIPAL */
+  .main-grid{display:grid;grid-template-columns:1fr 1.5fr;gap:20px;}
+  @media(max-width:900px){.main-grid{grid-template-columns:1fr;}}
+
+  /* PANELS */
+  .panel{background:var(--surface);border-radius:12px;padding:22px;box-shadow:var(--card-shadow);border:1px solid var(--line);}
+  .panel-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;}
+  .panel-title .pticon{font-size:16px;}
+  .edit-badge{font-size:10px;color:var(--warn);background:var(--warn-light);border:1px solid var(--warn);border-radius:4px;padding:2px 7px;font-weight:600;}
+
+  /* FORM */
+  .fform{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .fform .full{grid-column:1/-1;}
+  .fform label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
+  .fform input,.fform select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fafbfd;color:var(--ink);}
+  .fform input:focus,.fform select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,91,227,0.1);}
+  .btn-add{
+    grid-column:1/-1;background:var(--blue);color:#fff;border:none;border-radius:8px;
+    padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-add:hover{background:#1e45b8;}
+  .btn-add:disabled{opacity:0.6;cursor:default;}
+  .btn-cancel{
+    grid-column:1/-1;background:transparent;color:var(--muted);border:1px solid var(--line);
+    border-radius:8px;padding:9px;font-size:13px;cursor:pointer;display:none;margin-top:0;
+  }
+  .btn-cancel:hover{background:var(--bg);}
+  .form-status{font-size:12px;color:var(--muted);padding:6px 0;text-align:center;}
+  .form-status.error{color:var(--accent);}
+
+  /* FILTROS */
+  .filter-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .filter-row input,.filter-row select{
+    padding:8px 11px;border:1px solid var(--line);border-radius:8px;
+    font-size:13px;background:#fafbfd;color:var(--ink);flex:1;min-width:130px;
+  }
+  .filter-row input:focus,.filter-row select:focus{outline:none;border-color:var(--blue);}
+
+  /* FILAMENT CARDS */
+  .filament-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;}
+  .fcard{
+    background:var(--bg);border:1px solid var(--line);border-radius:10px;
+    padding:10px;position:relative;display:flex;flex-direction:column;gap:4px;
+  }
+  .fcard:hover{border-color:#c0cef0;box-shadow:0 2px 8px rgba(45,91,227,0.08);}
+  .fswatch{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,0.08);flex-shrink:0;}
+  .ftop{display:flex;align-items:center;gap:10px;}
+  .fname{font-weight:700;font-size:12px;line-height:1.3;color:var(--ink);}
+  .ftype{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .fqty{font-size:20px;font-weight:800;color:var(--ink);}
+  .fqty-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .fcontrols{display:flex;align-items:center;gap:8px;margin-top:2px;}
+  .qty-btn{
+    width:30px;height:30px;border-radius:6px;border:1px solid var(--line);
+    background:var(--surface);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    color:var(--ink);flex-shrink:0;font-weight:600;
+  }
+  .qty-btn:hover{background:var(--blue-light);border-color:var(--blue);color:var(--blue);}
+  .qty-btn:disabled{opacity:0.35;cursor:default;}
+  .fmeta{font-size:11.5px;color:var(--muted);}
+  .fnote{font-size:11.5px;color:var(--muted);font-style:italic;background:#f0f3fa;border-radius:6px;padding:5px 8px;line-height:1.4;}
+  .fcard-img-wrap{display:flex;justify-content:center;margin-bottom:4px;}
+  .fcard-img-wrap svg{width:50px;height:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.18));}
+  .fdel{position:absolute;top:8px;right:8px;border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;line-height:1;padding:2px;}
+  .fdel:hover{color:var(--accent);}
+  .fedit{position:absolute;top:8px;right:28px;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:2px;}
+  .fedit:hover{color:var(--warn);}
+  .empty{text-align:center;color:var(--muted);padding:30px 0;font-size:13px;grid-column:1/-1;}
+  .load-status{font-size:13px;color:var(--muted);padding:8px 0;}
+  .load-status.error{color:var(--accent);}
+
+  /* CONFIG / LOGIN */
+  .auth-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;width:100%;background:var(--bg);}
+  .auth-box{background:var(--surface);border-radius:14px;padding:32px;width:90%;max-width:420px;box-shadow:0 4px 24px rgba(30,42,58,0.10);border:1px solid var(--line);display:flex;flex-direction:column;}
+  .auth-box h2{font-family:Georgia,serif;font-size:20px;font-weight:400;margin-bottom:6px;color:var(--ink);}
+  .auth-box p{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:18px;}
+  .auth-box label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;margin-top:10px;text-transform:uppercase;letter-spacing:0.5px;}
+  .auth-box input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fafbfd;color:var(--ink);}
+  .auth-box input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,91,227,0.1);}
+  .auth-box .btn-primary{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;}
+  .auth-box .btn-primary:hover{background:#1e45b8;}
+  .auth-box .btn-secondary{width:100%;background:transparent;color:var(--blue);border:1px solid var(--blue);border-radius:8px;padding:10px;font-size:14px;cursor:pointer;margin-top:8px;}
+  .auth-box .btn-secondary:hover{background:var(--blue-light);}
+  .auth-status{font-size:12px;color:var(--muted);text-align:center;padding:8px 0;}
+  .auth-status.error{color:var(--accent);}
+
+  /* WELCOME MODAL */
+  .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,20,50,0.5);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border-radius:16px;padding:36px;width:90%;max-width:480px;box-shadow:0 16px 48px rgba(30,42,58,0.18);text-align:center;}
+  .modal .icon{font-size:48px;margin-bottom:12px;}
+  .modal h2{font-family:Georgia,serif;font-size:22px;font-weight:400;margin:0 0 10px;color:var(--ink);}
+  .modal p{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 10px;}
+  .modal ul{text-align:left;font-size:13px;color:var(--muted);line-height:1.8;margin:0 0 20px;padding-left:20px;}
+  .modal .btn-primary{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;}
+  .modal .btn-primary:hover{background:#1e45b8;}
+
+  .nav-parent{justify-content:space-between;user-select:none;}
+  .nav-parent .nav-arrow{font-size:11px;margin-left:auto;transition:transform 0.2s;}
+  .nav-parent.open .nav-arrow{transform:rotate(90deg);}
+  .nav-submenu{background:rgba(0,0,0,0.15);}
+  .nav-subitem{
+    display:block;padding:9px 20px 9px 48px;
+    color:rgba(255,255,255,0.55);font-size:13px;cursor:pointer;text-decoration:none;
+    transition:background 0.15s,color 0.15s;
+  }
+  .nav-subitem:hover{background:var(--sidebar-hover);color:#fff;}
+
+  /* MODAL ETIQUETA */
+  .etq-modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,20,50,0.6);z-index:300;align-items:center;justify-content:center;}
+  .etq-modal-overlay.open{display:flex;}
+  .etq-modal{background:var(--surface);border-radius:16px;padding:28px;width:95%;max-width:560px;box-shadow:0 16px 48px rgba(30,42,58,0.2);max-height:90vh;overflow-y:auto;}
+  .etq-modal h3{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);}
+  .etq-select{margin-bottom:16px;}
+  .etq-select label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;}
+  .etq-select select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fafbfd;color:var(--ink);}
+  .etq-preview{margin:16px 0;display:flex;justify-content:center;}
+  .etq-actions{display:flex;gap:10px;margin-top:16px;}
+  .etq-actions button{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;}
+  .btn-etq-print{background:var(--blue);color:#fff;}
+  .btn-etq-print:hover{background:#1e45b8;}
+  .btn-etq-close{background:var(--bg);color:var(--muted);border:1px solid var(--line) !important;}
+  .btn-etq-close:hover{background:var(--line);}
+
+  /* ETIQUETA SIMPLES */
+  .etiqueta-simples{
+    width:226px;min-height:142px;border:2px solid #1a2340;border-radius:8px;
+    padding:12px 14px;font-family:'Helvetica Neue',Arial,sans-serif;
+    background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  }
+  .etq-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:2px solid #1a2340;}
+  .etq-swatch{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,0.1);flex-shrink:0;}
+  .etq-nome{font-size:15px;font-weight:800;color:#1a2340;line-height:1.2;}
+  .etq-material{font-size:10px;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;}
+  .etq-body{font-size:11px;color:#3a4a6a;line-height:1.7;}
+  .etq-body span{font-weight:600;color:#1a2340;}
+  .etq-footer{margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f4;font-size:9px;color:#9aa5bf;text-align:right;}
+
+  /* ETIQUETA PROFISSIONAL */
+  .etiqueta-pro{
+    width:280px;min-height:160px;border:2px solid #1a2340;border-radius:10px;
+    padding:14px;font-family:'Helvetica Neue',Arial,sans-serif;
+    background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.1);
+    display:flex;gap:12px;align-items:flex-start;
+  }
+  .etq-pro-left{flex:1;}
+  .etq-pro-right{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;}
+  .etq-pro-right canvas{border:1px solid #e2e8f4;border-radius:4px;}
+  .etq-pro-right .etq-qr-label{font-size:8px;color:#9aa5bf;text-align:center;max-width:72px;line-height:1.3;}
+  /* CALCULADORA */
+  .calc-wrap{max-width:500px;margin:0 auto;}
+  .calc-card{background:var(--surface);border-radius:12px;padding:28px;box-shadow:var(--card-shadow);border:1px solid var(--line);}
+  .calc-card .panel-title{margin-bottom:20px;}
+  .calc-field{margin-bottom:16px;}
+  .calc-field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;}
+  .calc-field input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:#fafbfd;color:var(--ink);}
+  .calc-field input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,91,227,0.1);}
+  .calc-divider{border:none;border-top:1px solid var(--line);margin:20px 0;}
+  .calc-resultado{background:var(--blue-light);border:1px solid #c0cef0;border-radius:10px;padding:20px;text-align:center;}
+  .calc-resultado .calc-label{font-size:12px;color:#4a5a80;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .calc-resultado .calc-valor{font-size:36px;font-weight:800;color:var(--blue);}
+  .calc-resultado .calc-detalhe{font-size:12px;color:#4a5a80;margin-top:6px;}
+  .calc-resultado.vazio{background:var(--bg);border-color:var(--line);}
+  .calc-resultado.vazio .calc-valor{color:var(--muted);font-size:18px;font-weight:400;}
+  /* BARRA DE PROGRESSO PESO */
+  .fpeso-wrap{margin:4px 0;}
+  .fpeso-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px;}
+  .fpeso-bar{height:6px;background:#e2e8f4;border-radius:3px;overflow:hidden;}
+  .fpeso-fill{height:100%;border-radius:3px;transition:width 0.3s;}
+  .btn-uso{
+    width:100%;margin-top:6px;padding:7px;border-radius:7px;border:1px solid var(--blue);
+    background:var(--blue-light);color:var(--blue);font-size:12px;font-weight:600;cursor:pointer;
+  }
+  .btn-uso:hover{background:var(--blue);color:#fff;}
+
+  /* MODAL REGISTRO DE USO */
+  .uso-modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,20,50,0.6);z-index:400;align-items:center;justify-content:center;}
+  .uso-modal-overlay.open{display:flex;}
+  .uso-modal{background:var(--surface);border-radius:16px;padding:28px;width:90%;max-width:420px;box-shadow:0 16px 48px rgba(30,42,58,0.2);}
+  .uso-modal h3{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+  .uso-modal .uso-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+  .uso-modal label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;}
+  .uso-modal input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:#fafbfd;color:var(--ink);margin-bottom:16px;}
+  .uso-modal input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,91,227,0.1);}
+  .uso-modal .uso-info{background:var(--bg);border-radius:8px;padding:12px;font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7;}
+  .uso-modal .uso-info strong{color:var(--ink);}
+  .uso-actions{display:flex;gap:10px;}
+  .uso-actions button{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;}
+  .btn-uso-salvar{background:var(--blue);color:#fff;}
+  .btn-uso-salvar:hover{background:#1e45b8;}
+  .btn-uso-cancelar{background:var(--bg);color:var(--muted);border:1px solid var(--line) !important;}
+
+  /* HISTORICO */
+  .hist-wrap{margin-top:8px;}
+  .hist-toggle{font-size:11px;color:var(--blue);cursor:pointer;background:none;border:none;padding:0;text-decoration:underline;}
+  .hist-list{margin-top:6px;display:none;}
+  .hist-item{font-size:11px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--line);line-height:1.5;}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-item strong{color:var(--ink);}
+
+  .hist-tela-item{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;border-radius:8px;background:var(--bg);
+    border:1px solid var(--line);margin-bottom:8px;
+  }
+  .hist-tela-item .ht-data{font-size:12px;color:var(--muted);}
+  .hist-tela-item .ht-gramas{font-size:15px;font-weight:700;color:var(--accent);}
+  .hist-tela-item .ht-resto{font-size:13px;color:var(--muted);}
+  .hist-tela-vazio{text-align:center;color:var(--muted);padding:30px 0;font-size:13px;}
+  .hist-tela-resumo{background:var(--blue-light);border:1px solid #c0cef0;border-radius:10px;padding:16px;margin-bottom:16px;display:flex;gap:24px;flex-wrap:wrap;}
+  .hist-tela-resumo .hr-item .hr-label{font-size:11px;color:#4a5a80;text-transform:uppercase;letter-spacing:0.5px;}
+  .hist-tela-resumo .hr-item .hr-val{font-size:20px;font-weight:700;color:var(--blue);}
+
+  /* NOTIFICAÇÕES */
+  .notif-item{display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:10px;background:var(--bg);border:1px solid var(--line);margin-bottom:10px;}
+  .notif-item.nao-lida{background:#fff8f0;border-color:#f5d0b0;}
+  .notif-icon{font-size:20px;flex-shrink:0;margin-top:2px;}
+  .notif-msg{font-size:13px;color:var(--ink);line-height:1.5;flex:1;}
+  .notif-data{font-size:11px;color:var(--muted);margin-top:4px;}
+  .notif-vazio{text-align:center;color:var(--muted);padding:40px 0;font-size:13px;}
+  .btn-notif-limpar{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;margin-bottom:16px;}
+  .btn-notif-limpar:hover{background:var(--bg);}
+
+  /* LISTA DE REPOSIÇÃO */
+  .rep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:16px;}
+  .rep-card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;position:relative;}
+  .rep-card:hover{border-color:#c0cef0;}
+  .rep-nome{font-weight:700;font-size:14px;color:var(--ink);margin-bottom:2px;}
+  .rep-material{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+  .rep-meta{font-size:12px;color:var(--muted);line-height:1.7;}
+  .rep-actions{display:flex;gap:8px;margin-top:10px;}
+  .btn-comprado{flex:1;background:var(--good-light);color:var(--good);border:1px solid var(--good);border-radius:7px;padding:7px;font-size:12px;font-weight:600;cursor:pointer;}
+  .btn-comprado:hover{background:var(--good);color:#fff;}
+  .btn-rep-del{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:7px;padding:7px 10px;font-size:12px;cursor:pointer;}
+  .btn-rep-del:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* MODAL COMPRADO */
+  .comprado-modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,20,50,0.6);z-index:400;align-items:center;justify-content:center;}
+  .comprado-modal-overlay.open{display:flex;}
+  .comprado-modal{background:var(--surface);border-radius:16px;padding:28px;width:90%;max-width:440px;box-shadow:0 16px 48px rgba(30,42,58,0.2);}
+  .comprado-modal h3{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+  .comprado-modal .csub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+  .comprado-modal label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;margin-top:12px;}
+  .comprado-modal input{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fafbfd;color:var(--ink);}
+  .comprado-modal input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(45,91,227,0.1);}
+  .comprado-actions{display:flex;gap:10px;margin-top:18px;}
+  .comprado-actions button{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;}
+  .btn-confirmar-compra{background:var(--good);color:#fff;}
+  .btn-confirmar-compra:hover{background:#155c38;}
+  .btn-cancelar-compra{background:var(--bg);color:var(--muted);border:1px solid var(--line) !important;}
+
+  .tela{display:none;}
+  .tela.ativa{display:block;}
+
+  @media print{body *{visibility:hidden;}#printArea,#printArea *{visibility:visible;}#printArea{position:fixed;top:0;left:0;width:100%;padding:20px;}}
+  .print-header{display:none;}
+  #printArea{display:none;}
+
+  /* ── RESPONSIVO MOBILE ─────────────────────── */
+  .hamburger{display:none;position:fixed;top:14px;left:14px;z-index:200;
+    background:#1a2035;border:none;border-radius:8px;padding:8px 10px;
+    cursor:pointer;color:#fff;font-size:18px;line-height:1;}
+  .sidebar-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.5);z-index:99;}
+  .sidebar-overlay.open{display:block;}
+
+  @media(max-width:768px){
+    .hamburger{display:flex;align-items:center;justify-content:center;}
+    .sidebar{transform:translateX(-100%);transition:transform 0.25s;}
+    .sidebar.open{transform:translateX(0);}
+    .main-content{margin-left:0;}
+    .topbar{padding:0 12px 0 56px;height:58px;flex-wrap:nowrap;}
+    .topbar-left .greeting{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
+    .topbar-left .subtitle{display:none;}
+    .topbar-right{gap:6px;flex-shrink:0;}
+    .btn-suporte{padding:7px 10px;font-size:12px;}
+    .btn-sair{padding:7px 12px;font-size:12px;}
+    .page{padding:14px;}
+    .summary-cards{grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+    .scard{padding:12px 10px;gap:6px;flex-direction:column;align-items:flex-start;}
+    .scard-icon{width:34px;height:34px;border-radius:8px;}
+    .scard-icon svg{width:17px;height:17px;}
+    .scard-info .svalue{font-size:18px;}
+    .scard-info .slabel{font-size:9px;}
+    .scard-info .sdesc{font-size:10px;}
+    .main-grid{grid-template-columns:1fr;gap:14px;}
+    .filament-grid{grid-template-columns:1fr 1fr;gap:10px;}
+    .fform{grid-template-columns:1fr;}
+    .fform .full{grid-column:1;}
+    .btn-add{grid-column:1;}
+    .btn-cancel{grid-column:1;}
+    .filter-row{flex-direction:column;gap:8px;}
+    .panel{padding:16px;}
+    .rep-grid{grid-template-columns:1fr;}
+    .calc-wrap{max-width:100%;}
+    .panel-title{font-size:14px;}
+  }
+  @media(max-width:400px){
+    .filament-grid{grid-template-columns:1fr 1fr;}
+    .btn-uso{width:100%;}
+  }
+
+  /* TABLET */
+  @media(min-width:769px) and (max-width:1024px){
+    .sidebar{width:200px;}
+    .main-content{margin-left:200px;}
+    .topbar{padding:0 20px;height:60px;}
+    .summary-cards{grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+    .scard{padding:12px 14px;gap:8px;flex-direction:row;align-items:center;}
+    .scard-icon{width:38px;height:38px;flex-shrink:0;}
+    .scard-info .svalue{font-size:18px;}
+    .scard-info .slabel{font-size:9px;}
+    .scard-info .sdesc{font-size:10px;}
+    .main-grid{grid-template-columns:1fr;gap:16px;}
+    .filament-grid{grid-template-columns:repeat(3,1fr);gap:12px;}
+    .page{padding:20px;}
+  }
+</style>
+</head>
+<body>
+
+<button class="hamburger" id="hamburgerBtn">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- TELA PÚBLICA DO FILAMENTO (QR Code) -->
+<div id="publicScreen" style="display:none;min-height:100vh;background:#f4f6fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:480px;margin:0 auto;padding:24px 16px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-family:Georgia,serif;font-size:24px;color:#1a2340;font-weight:700;" id="pubBrand">D3Arte</div>
+      <div style="font-size:12px;color:#8a94a6;margin-top:2px;">Filament Manager</div>
+    </div>
+    <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e5e7eb;">
+      <div id="pubConteudo" style="text-align:center;color:#8a94a6;padding:40px 0;">Carregando...</div>
+    </div>
+    <div style="text-align:center;margin-top:20px;font-size:11px;color:#8a94a6;">
+      Powered by D3Arte Filament Manager
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG SCREEN -->
+<div id="configScreen" style="display:none;" class="auth-wrap" style="width:100%;">
+  <div class="auth-box">
+    <h2>Configuração inicial</h2>
+    <p>Cole as credenciais do seu projeto Supabase para conectar ao banco de dados.</p>
+    <label>Project URL</label>
+    <input type="text" id="cfgUrl" placeholder="https://xxxxx.supabase.co">
+    <label>Anon public key</label>
+    <input type="text" id="cfgKey" placeholder="eyJhbGciOiJI...">
+    <button class="btn-primary" id="cfgSave" style="margin-top:16px;">Conectar</button>
+    <div class="auth-status error" id="cfgError" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="display:none;" class="auth-wrap">
+  <!-- TELA DE LOGIN -->
+  <div class="auth-box" id="boxLogin">
+    <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
+    <h2>Entrar</h2>
+    <p>Acesse com seu e-mail e senha.</p>
+    <label>E-mail</label>
+    <input type="email" id="loginEmail" placeholder="voce@email.com">
+    <label>Senha</label>
+    <input type="password" id="loginPassword" placeholder="••••••••">
+    <button class="btn-primary" id="loginBtn">Entrar</button>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
+      Não tem conta? <a href="#" id="irParaCadastro" style="color:var(--accent);font-weight:600;text-decoration:none;">Criar conta</a>
+    </div>
+    <div class="auth-status error" id="loginError" style="display:none;"></div>
+    <div class="auth-status" id="loginInfo" style="display:none;"></div>
+  </div>
+
+  <!-- TELA DE CADASTRO -->
+  <div class="auth-box" id="boxCadastro" style="display:none;flex-direction:column;">
+    <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
+    <h2>Criar conta</h2>
+    <p>Preencha os dados para começar seus 7 dias grátis.</p>
+    <label>E-mail</label>
+    <input type="email" id="cadastroEmail" placeholder="voce@email.com">
+    <label>Senha</label>
+    <input type="password" id="cadastroSenha" placeholder="Mínimo 6 caracteres">
+    <label>Confirmar senha</label>
+    <input type="password" id="cadastroConfirmar" placeholder="Repita a senha">
+    <button class="btn-primary" id="cadastroBtn">Criar conta</button>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
+      Já tem conta? <a href="#" id="irParaLogin" style="color:var(--accent);font-weight:600;text-decoration:none;">Entrar</a>
+    </div>
+    <div class="auth-status error" id="cadastroError" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="appScreen" style="display:none;width:100%;">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="app-name" id="brandHeader">D3Arte</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" href="#" id="navEstoque">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Estoque
+      </a>
+      <a class="nav-item" href="#" id="navPrint">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir relatório
+      </a>
+      <div class="nav-item nav-parent" id="navEtiquetaToggle">
+        <div class="nav-left">
+          <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Imprimir etiqueta
+        </div>
+        <span class="nav-arrow">›</span>
+      </div>
+      <div class="nav-submenu" id="navEtiquetaMenu" style="display:none;">
+        <a class="nav-subitem" href="#" id="navEtiquetaSimples">Simples</a>
+        <a class="nav-subitem" href="#" id="navEtiquetaPro">Profissional com QR Code</a>
+      </div>
+      <a class="nav-item" href="#" id="navReposicao">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        Lista de reposição
+        <span class="nav-badge" id="repBadge" style="display:none;">0</span>
+      </a>
+      <div class="nav-item nav-parent" id="navFerramentasToggle">
+        <div class="nav-left">
+          <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          Ferramentas
+        </div>
+        <span class="nav-arrow">›</span>
+      </div>
+      <div class="nav-submenu" id="navFerramentasMenu" style="display:none;">
+        <a class="nav-subitem" href="#" id="navCalculadora">Calculadora</a>
+      </div>
+      <a class="nav-item" href="#" id="navHistorico">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Histórico de uso
+      </a>
+      <a class="nav-item" href="#" id="navAdmin" style="display:none;">
+        <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>
+        Admin
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-avatar" id="sidebarAvatar">D</div>
+      <div class="sidebar-footer-text">
+        <div class="sidebar-footer-name" id="sidebarClientName">D3Arte</div>
+        <div class="sidebar-footer-sub">Filament Manager</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="greeting" id="userGreeting">Olá!</div>
+        <div class="subtitle">Bem-vindo de volta ao seu painel de controle</div>
+      </div>
+      <div class="topbar-right">
+        <a id="btnSuporte" href="https://wa.me/5577981383177?text=Olá!%20Preciso%20de%20suporte%20com%20o%20app%20de%20estoque%20de%20filamentos." target="_blank" class="btn-suporte">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+          Suporte
+        </a>
+        <a href="#" id="navNotifTopbar" class="btn-notif">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="notifBadge" class="notif-badge">0</span>
+        </a>
+        <button class="btn-sair" id="logoutBtn">Sair</button>
+      </div>
+    </div>
+
+    <!-- PAGE -->
+    <div class="page">
+
+      <!-- MODAL REGISTRO DE USO -->
+      <div class="uso-modal-overlay" id="usoModal">
+        <div class="uso-modal">
+          <h3>Registrar uso de filamento</h3>
+          <div class="uso-sub" id="usoModalSub"></div>
+          <div class="uso-info" id="usoModalInfo"></div>
+          <label>Quantas gramas você usou?</label>
+          <input type="number" id="usoGramas" placeholder="Ex: 100" min="1" step="1">
+          <div class="uso-actions">
+            <button class="btn-uso-salvar" id="usoSalvarBtn">Registrar</button>
+            <button class="btn-uso-cancelar" id="usoCancelarBtn">Cancelar</button>
+          </div>
+          <div class="form-status" id="usoStatus"></div>
+        </div>
+      </div>
+
+      <!-- MODAL AVISO FILAMENTO BAIXO -->
+      <div class="modal-overlay" id="avisoModal" style="z-index:500;">
+        <div class="modal">
+          <div class="icon">⚠️</div>
+          <h2>Atenção ao estoque!</h2>
+          <p>Os seguintes filamentos estão com pouco material:</p>
+          <div id="avisoLista" style="text-align:left;margin:12px 0;"></div>
+          <button class="btn-primary" id="avisoFechar">Entendido</button>
+        </div>
+      </div>
+
+      <!-- MODAL COMPRADO -->
+      <div class="comprado-modal-overlay" id="compradoModal">
+        <div class="comprado-modal">
+          <h3>✅ Registrar compra</h3>
+          <div class="csub" id="compradoSub"></div>
+          <label>Fornecedor / Plataforma</label>
+          <select id="cFornecedorSelect" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fafbfd;color:var(--ink);margin-bottom:0;">
+            <option value="">Selecione...</option>
+            <option value="Mercado Livre">Mercado Livre</option>
+            <option value="Shopee">Shopee</option>
+            <option value="Amazon">Amazon</option>
+            <option value="AliExpress">AliExpress</option>
+            <option value="outros">Outros</option>
+          </select>
+          <input type="text" id="cFornecedor" placeholder="Digite o fornecedor..." style="display:none;margin-top:6px;">
+          <label>Valor pago por rolo (R$)</label>
+          <input type="number" id="cValor" placeholder="Ex: 89.90" min="0" step="0.01">
+          <label>Peso por rolo (g)</label>
+          <input type="number" id="cPeso" placeholder="Ex: 1000" value="1000" min="0" step="1">
+          <label>Cor (visual)</label>
+          <input type="color" id="cCor" value="#c2461d" style="height:38px;padding:4px;">
+          <div class="comprado-actions">
+            <button class="btn-confirmar-compra" id="btnConfirmarCompra">Adicionar ao estoque</button>
+            <button class="btn-cancelar-compra" id="btnCancelarCompra">Cancelar</button>
+          </div>
+          <div class="form-status" id="compradoStatus"></div>
+        </div>
+      </div>
+
+      <!-- TELA ESTOQUE -->
+      <div class="tela ativa" id="telaEstoque">
+
+      <!-- WELCOME MODAL -->
+      <div class="modal-overlay" id="welcomeModal">
+        <div class="modal">
+          <div class="icon">⚙️</div>
+          <h2 id="welcomeTitle">Bem-vindo ao Estoque de Filamentos!</h2>
+          <p>Antes de começar, como quer que o app te identifique?</p>
+          <div style="text-align:left;margin-bottom:16px;">
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Seu nome ou empresa</label>
+            <input type="text" id="welcomeNome" placeholder="Ex: João Silva ou Minha Empresa" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fafbfd;color:var(--ink);">
+            <div id="welcomeNomeErr" style="font-size:12px;color:var(--accent);margin-top:4px;display:none;">Por favor, preencha seu nome antes de continuar.</div>
+          </div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:8px;">Com o app você pode:</p>
+          <ul>
+            <li>Cadastrar seus filamentos com cor, material, marca e fornecedor</li>
+            <li>Controlar a quantidade de rolos com os botões + e −</li>
+            <li>Registrar o valor pago por rolo para saber seu investimento total</li>
+            <li>Adicionar observações (ex: "rolo aberto, ~30% restante")</li>
+            <li>Buscar e filtrar por material</li>
+            <li>Imprimir a lista completa do estoque</li>
+          </ul>
+          <button class="btn-primary" id="welcomeClose">Começar a usar →</button>
+        </div>
+      </div>
+
+      <!-- MODAL ETIQUETA -->
+      <div class="etq-modal-overlay" id="etqModal">
+        <div class="etq-modal">
+          <h3>🏷️ Imprimir etiqueta</h3>
+          <div class="etq-select">
+            <label>Selecionar filamentos para imprimir</label>
+            <div id="etqFilList" style="max-height:180px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+          <div class="etq-preview" id="etqPreview"></div>
+          <div class="etq-actions">
+            <button class="btn-etq-print" id="etqPrintBtn">🖨️ Imprimir etiqueta</button>
+            <button class="btn-etq-close" id="etqCloseBtn">Fechar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUMMARY CARDS -->
+      <div class="summary-cards">
+        <div class="scard">
+          <div class="scard-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#2d5be3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
+              <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
+            </svg>
+          </div>
+          <div class="scard-info">
+            <div class="slabel">Total de rolos</div>
+            <div class="svalue" id="totRolos">0</div>
+            <div class="sdesc">rolos cadastrados</div>
+          </div>
+        </div>
+        <div class="scard">
+          <div class="scard-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.1 0 2-.9 2-2 0-.53-.2-1-.5-1.36-.29-.34-.47-.79-.47-1.25 0-1.1.9-2 2-2h2.36c3.1 0 5.61-2.51 5.61-5.61C22.99 6.01 18 2 12 2z"/><circle cx="6.5" cy="11.5" r="1.5" fill="#16a34a"/><circle cx="9.5" cy="7.5" r="1.5" fill="#16a34a"/><circle cx="14.5" cy="7.5" r="1.5" fill="#16a34a"/><circle cx="17.5" cy="11.5" r="1.5" fill="#16a34a"/></svg>
+          </div>
+          <div class="scard-info">
+            <div class="slabel">Cores em estoque</div>
+            <div class="svalue" id="totTipos">0</div>
+            <div class="sdesc">cores disponíveis</div>
+          </div>
+        </div>
+        <div class="scard">
+          <div class="scard-icon orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </div>
+          <div class="scard-info">
+            <div class="slabel">Valor total em estoque</div>
+            <div class="svalue accent" id="totValor">R$ 0,00</div>
+            <div class="sdesc">valor de custo total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN GRID -->
+      <div class="main-grid">
+
+        <!-- FORM PANEL -->
+        <div class="panel">
+          <div class="panel-title">
+            <span class="pticon">➕</span>
+            <span id="formTitle">Adicionar filamento</span>
+          </div>
+          <form id="filForm" class="fform">
+            <div class="full">
+              <label>Cor / Nome</label>
+              <input type="text" id="fNome" placeholder="Ex: Vermelho Fosco" required>
+            </div>
+            <div>
+              <label>Material</label>
+              <input type="text" id="fMaterial" placeholder="Ex: PLA, PETG, ABS" required>
+            </div>
+            <div>
+              <label>Marca</label>
+              <input type="text" id="fMarca" placeholder="Ex: Voolt, 3DLab">
+            </div>
+            <div>
+              <label>Quantidade (rolos)</label>
+              <input type="number" id="fQtd" min="0" step="1" value="1" required>
+            </div>
+            <div>
+              <label>Cor (visual)</label>
+              <input type="color" id="fCor" value="#c2461d" style="height:38px;padding:4px;">
+            </div>
+            <div>
+              <label>Fornecedor</label>
+              <select id="fFornecedorSelect" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fafbfd;color:var(--ink);">
+                <option value="">Selecione...</option>
+                <option value="Mercado Livre">Mercado Livre</option>
+                <option value="Shopee">Shopee</option>
+                <option value="Amazon">Amazon</option>
+                <option value="AliExpress">AliExpress</option>
+                <option value="outros">Outros</option>
+              </select>
+              <input type="text" id="fFornecedor" placeholder="Digite o fornecedor..." style="display:none;margin-top:6px;">
+            </div>
+            <div>
+              <label>Valor pago por rolo (R$)</label>
+              <input type="number" id="fValor" min="0" step="0.01" placeholder="Ex: 89.90">
+            </div>
+            <div>
+              <label>Peso por rolo (g)</label>
+              <input type="number" id="fPesoPorRolo" min="0" step="1" placeholder="Ex: 1000" value="1000">
+            </div>
+            <div class="full">
+              <label>Observação (opcional)</label>
+              <input type="text" id="fNota" placeholder="Ex: 1 rolo aberto, ~30% restante">
+            </div>
+            <button type="submit" class="btn-add" id="submitBtn">➕ Adicionar filamento</button>
+            <button type="button" class="btn-cancel" id="cancelEditBtn">Cancelar edição</button>
+          </form>
+          <div class="form-status" id="formStatus"></div>
+        </div>
+
+        <!-- STOCK PANEL -->
+        <div class="panel">
+          <div class="panel-title">
+            <span class="pticon">📋</span> Estoque atual
+          </div>
+          <div class="print-header">
+            <h2 style="font-size:20px;margin:0 0 4px;" id="printTitle">D3Arte — Estoque de Filamentos</h2>
+            <p style="font-size:12px;color:#555;margin:0;">Gerado em: <span id="printDate"></span></p>
+          </div>
+          <div class="filter-row">
+            <input type="text" id="searchBox" placeholder="Buscar por cor ou material...">
+            <select id="filterMaterial">
+              <option value="">Todos os materiais</option>
+            </select>
+          </div>
+          <div class="load-status" id="loadStatus">Carregando dados...</div>
+          <div class="filament-grid" id="filGrid"></div>
+          <div class="empty" id="emptyMsg" style="display:none;">Nenhum filamento cadastrado ainda.</div>
+        </div>
+
+      </div>
+      </div><!-- fim telaEstoque -->
+
+      <!-- TELA CALCULADORA -->
+      <div class="tela" id="telaCalculadora">
+        <div class="calc-wrap">
+          <div class="calc-card">
+            <div class="panel-title"><span class="pticon">🧮</span> Calculadora de gasto de filamento</div>
+            <div class="calc-field">
+              <label>Peso total do rolo (g)</label>
+              <input type="number" id="calcPesoTotal" placeholder="Ex: 1000" min="0" step="1">
+            </div>
+            <div class="calc-field">
+              <label>Valor pago pelo rolo (R$)</label>
+              <input type="number" id="calcValor" placeholder="Ex: 95.00" min="0" step="0.01">
+            </div>
+            <div class="calc-field">
+              <label>Quanto você usou (g)</label>
+              <input type="number" id="calcUsado" placeholder="Ex: 100" min="0" step="1">
+            </div>
+            <hr class="calc-divider">
+            <div class="calc-resultado vazio" id="calcResultado">
+              <div class="calc-label">Custo do filamento usado</div>
+              <div class="calc-valor" id="calcValorGasto">Preencha os campos acima</div>
+              <div class="calc-detalhe" id="calcDetalhe"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TELA REPOSIÇÃO -->
+      <div class="tela" id="telaReposicao">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div class="panel-title" style="margin:0;"><span class="pticon">🛒</span> Lista de reposição</div>
+          <button class="btn-add" id="btnAbrirAddReposicao" style="width:auto;padding:9px 18px;font-size:13px;">+ Adicionar item</button>
+        </div>
+
+        <!-- Formulário add reposição -->
+        <div class="panel" id="formReposicaoWrap" style="display:none;margin-bottom:20px;">
+          <div class="panel-title"><span class="pticon">➕</span> Novo item para repor</div>
+          <div class="fform">
+            <div class="full">
+              <label>Cor / Nome</label>
+              <input type="text" id="rNome" placeholder="Ex: Branco Fosco" required>
+            </div>
+            <div>
+              <label>Material</label>
+              <input type="text" id="rMaterial" placeholder="Ex: PLA, PETG">
+            </div>
+            <div>
+              <label>Marca (opcional)</label>
+              <input type="text" id="rMarca" placeholder="Ex: Voolt, 3DLab">
+            </div>
+            <div>
+              <label>Quantidade (rolos)</label>
+              <input type="number" id="rQtd" min="1" value="1" step="1">
+            </div>
+            <div class="full">
+              <label>Fornecedor (opcional)</label>
+              <select id="rFornecedorSelect" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fafbfd;color:var(--ink);">
+                <option value="">Selecione...</option>
+                <option value="Mercado Livre">Mercado Livre</option>
+                <option value="Shopee">Shopee</option>
+                <option value="Amazon">Amazon</option>
+                <option value="AliExpress">AliExpress</option>
+                <option value="outros">Outros</option>
+              </select>
+              <input type="text" id="rFornecedor" placeholder="Digite o fornecedor..." style="display:none;margin-top:6px;">
+            </div>
+            <div class="full">
+              <label>Observação (opcional)</label>
+              <input type="text" id="rNota" placeholder="Ex: Pesquisar preço antes de comprar">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <button class="btn-add" id="btnSalvarReposicao" style="flex:1;padding:10px;">Salvar na lista</button>
+            <button type="button" id="btnCancelarReposicao" style="flex:1;padding:10px;background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:8px;font-size:13px;cursor:pointer;">Cancelar</button>
+          </div>
+          <div class="form-status" id="repStatus"></div>
+        </div>
+
+        <div class="rep-grid" id="repGrid"></div>
+        <div class="empty" id="repEmpty" style="display:none;text-align:center;color:var(--muted);padding:40px 0;font-size:13px;">Nenhum item na lista de reposição.</div>
+      </div>
+
+      <!-- TELA HISTÓRICO -->
+      <div class="tela" id="telaHistorico">
+        <div class="calc-wrap" style="max-width:600px;">
+          <div class="calc-card">
+            <div class="panel-title"><span class="pticon">📋</span> Histórico de uso</div>
+            <div class="calc-field">
+              <label>Selecionar filamento</label>
+              <select id="histFilSelect" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fafbfd;color:var(--ink);">
+                <option value="">Selecione um filamento...</option>
+              </select>
+            </div>
+            <div id="histTelaConteudo"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TELA ADMIN -->
+      <div class="tela" id="telaAdmin">
+        <div class="calc-wrap" style="max-width:900px;">
+          <div class="calc-card">
+            <div class="panel-title"><span class="pticon">👑</span> Painel Admin</div>
+
+            <div class="summary-cards" style="margin-top:14px;margin-bottom:20px;">
+              <div class="scard">
+                <div class="scard-icon" style="background:#e7f0ff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d5be3" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                <div class="scard-info">
+                  <div class="slabel">TOTAL DE CLIENTES</div>
+                  <div class="svalue" id="admTotalClientes">0</div>
+                  <div class="sdesc">cadastrados</div>
+                </div>
+              </div>
+              <div class="scard">
+                <div class="scard-icon" style="background:#fff4e0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e89a1c" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                <div class="scard-info">
+                  <div class="slabel">EM TRIAL</div>
+                  <div class="svalue" id="admTotalTrial">0</div>
+                  <div class="sdesc">testando agora</div>
+                </div>
+              </div>
+              <div class="scard">
+                <div class="scard-icon" style="background:#e6f9ee;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1fa85c" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg></div>
+                <div class="scard-info">
+                  <div class="slabel">VAGAS FUNDADOR</div>
+                  <div class="svalue" id="admVagasFundador">20</div>
+                  <div class="sdesc" id="admVagasFundadorDesc">de 20 restantes</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-title" style="font-size:14px;margin-bottom:10px;">Lista de clientes</div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                  <tr style="text-align:left;border-bottom:2px solid var(--line);color:var(--muted);">
+                    <th style="padding:8px 10px;">E-mail</th>
+                    <th style="padding:8px 10px;">Cadastro</th>
+                    <th style="padding:8px 10px;">Status</th>
+                    <th style="padding:8px 10px;">Plano</th>
+                    <th style="padding:8px 10px;">Vencimento</th>
+                    <th style="padding:8px 10px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="admClientesTable">
+                  <tr><td colspan="5" style="padding:14px;color:var(--muted);">Carregando...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TELA NOTIFICAÇÕES -->
+      <div class="tela" id="telaNotificacoes">
+        <div class="calc-wrap" style="max-width:600px;">
+          <div class="calc-card">
+            <div class="panel-title"><span class="pticon">🔔</span> Notificações</div>
+            <button class="btn-notif-limpar" id="btnMarcarLidas">Marcar todas como lidas</button>
+            <div id="notifLista"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  
+<script>
+const CFG_KEY = 'd3arte_supabase_cfg';
+const SUPABASE_URL = 'https://jfcytkngeoizyshevqbd.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmY3l0a25nZW9penlzaGV2cWJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MjQ2NTYsImV4cCI6MjA5ODEwMDY1Nn0.JNZwWS5fQfvLBgfWaZghieS556R94Q2fyYEfqa7Cd6c';
+const cfg = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+const brandName = (cfg && cfg.nome) ? cfg.nome : 'D3Arte';
+let db, filaments = [], currentUser = null, editingId = null;
+
+function setEditMode(f){
+  editingId = f.id;
+  document.getElementById('formTitle').innerHTML = 'Editar filamento <span class="edit-badge">modo edição</span>';
+  document.getElementById('submitBtn').textContent = 'Salvar alterações';
+  document.getElementById('cancelEditBtn').style.display = 'block';
+  document.getElementById('fNome').value = f.nome || '';
+  document.getElementById('fMaterial').value = f.material || '';
+  document.getElementById('fMarca').value = f.marca || '';
+  document.getElementById('fQtd').value = f.quantidade ?? 1;
+  document.getElementById('fCor').value = f.cor || '#c2461d';
+  setFornecedorSelect('fFornecedorSelect','fFornecedor', f.fornecedor || '');
+  document.getElementById('fValor').value = f.valor || '';
+  document.getElementById('fPesoPorRolo').value = f.peso_por_rolo || 1000;
+  document.getElementById('fNota').value = f.nota || '';
+  const formPanel = document.getElementById('filForm').closest('.panel');
+  formPanel.style.outline = '2px solid var(--warn)';
+  setTimeout(()=>{ formPanel.style.outline = ''; }, 1500);
+  formPanel.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('fNome').focus();
+}
+
+function clearEditMode(){
+  editingId = null;
+  document.getElementById('formTitle').textContent = 'Adicionar filamento';
+  document.getElementById('submitBtn').textContent = '➕ Adicionar filamento';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  document.getElementById('filForm').reset();
+  document.getElementById('fCor').value = '#c2461d';
+  document.getElementById('fQtd').value = 1;
+  document.getElementById('fFornecedorSelect').value = '';
+  document.getElementById('fFornecedor').style.display = 'none';
+  document.getElementById('fFornecedor').value = '';
+  document.getElementById('fPesoPorRolo').value = 1000;
+  document.getElementById('formStatus').textContent = '';
+}
+
+function render(){
+  const grid = document.getElementById('filGrid');
+  const emptyMsg = document.getElementById('emptyMsg');
+  grid.innerHTML = '';
+
+  const search = document.getElementById('searchBox').value.trim().toLowerCase();
+  const materialFilter = document.getElementById('filterMaterial').value;
+
+  const materials = [...new Set(filaments.map(f=>f.material))].sort();
+  const matSelect = document.getElementById('filterMaterial');
+  const currentVal = matSelect.value;
+  matSelect.innerHTML = '<option value="">Todos os materiais</option>' +
+    materials.map(m=>`<option value="${m}">${m}</option>`).join('');
+  matSelect.value = currentVal;
+
+  let totRolos = 0, totValor = 0;
+  filaments.forEach(f=>{
+    totRolos += Number(f.quantidade);
+    if(f.valor) totValor += Number(f.valor) * Number(f.quantidade);
+  });
+
+  document.getElementById('totRolos').textContent = totRolos;
+  document.getElementById('totTipos').textContent = filaments.length;
+  document.getElementById('totValor').textContent = 'R$ ' + totValor.toLocaleString('pt-BR',{minimumFractionDigits:2});
+
+  let visible = [...filaments].sort((a,b)=> a.nome.localeCompare(b.nome));
+
+  if(search){
+    visible = visible.filter(f =>
+      f.nome.toLowerCase().includes(search) || f.material.toLowerCase().includes(search)
+    );
+  }
+  if(materialFilter){
+    visible = visible.filter(f => f.material === materialFilter);
+  }
+
+  emptyMsg.style.display = visible.length === 0 ? 'block' : 'none';
+
+  visible.forEach(f=>{
+    const card = document.createElement('div');
+    card.className = 'fcard';
+    const detalhes = [];
+    if(f.marca) detalhes.push(f.marca);
+    if(f.fornecedor) detalhes.push('via ' + f.fornecedor);
+    const pesoPorRolo = Number(f.peso_por_rolo) || 1000;
+    const pesoTotal = pesoPorRolo * Number(f.quantidade||1);
+    const pesoAtual = Number(f.peso_atual) !== undefined ? Number(f.peso_atual) : pesoTotal;
+    const pct = Math.max(0, Math.min(100, (pesoAtual / pesoTotal) * 100));
+    const barColor = pct > 50 ? '#2d5be3' : pct > 20 ? '#b8860b' : '#c2461d';
+    card.innerHTML = `
+      <button class="fedit" data-id="${f.id}" aria-label="Editar">✏️</button>
+      <button class="fdel" data-id="${f.id}" aria-label="Remover">&times;</button>
+      <div class="ftop">
+        <div class="fcard-img-wrap">
+          <svg viewBox="0 0 138 220" xmlns="http://www.w3.org/2000/svg" width="69" height="110">
+            <defs>
+              <linearGradient id="fl_l_${f.id}" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#b0b0b0"/>
+                <stop offset="100%" stop-color="#e8e8e8"/>
+              </linearGradient>
+              <linearGradient id="fl_r_${f.id}" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#d0d0d0"/>
+                <stop offset="100%" stop-color="#888"/>
+              </linearGradient>
+              <linearGradient id="fl_c_${f.id}" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="${f.cor || '#cccccc'}"/>
+                <stop offset="100%" stop-color="${f.cor || '#cccccc'}cc"/>
+              </linearGradient>
+              <linearGradient id="fl_h_${f.id}" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#444"/>
+                <stop offset="100%" stop-color="#222"/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="14" cy="110" rx="14" ry="106" fill="url(#fl_l_${f.id})"/>
+            <rect x="14" y="4" width="110" height="212" fill="url(#fl_c_${f.id})"/>
+            <line x1="34" y1="4" x2="34" y2="216" stroke="#00000055" stroke-width="1.2"/>
+            <line x1="54" y1="4" x2="54" y2="216" stroke="#00000055" stroke-width="1.2"/>
+            <line x1="74" y1="4" x2="74" y2="216" stroke="#00000055" stroke-width="1.2"/>
+            <line x1="94" y1="4" x2="94" y2="216" stroke="#00000055" stroke-width="1.2"/>
+            <line x1="114" y1="4" x2="114" y2="216" stroke="#00000055" stroke-width="1.2"/>
+            <ellipse cx="124" cy="110" rx="14" ry="106" fill="url(#fl_r_${f.id})"/>
+            <ellipse cx="124" cy="110" rx="7" ry="34" fill="url(#fl_h_${f.id})"/>
+            <rect x="18" y="4" width="100" height="8" fill="white" opacity="0.15" rx="1"/>
+          </svg>
+        </div>
+        <div>
+          <div class="fname">${f.nome}</div>
+          <div class="ftype">${f.material}</div>
+        </div>
+      </div>
+      <div>
+        <div class="fqty">${f.quantidade}</div>
+        <div class="fqty-label">rolo${f.quantidade==1?'':'s'}</div>
+      </div>
+      <div class="fpeso-wrap">
+        <div class="fpeso-label">
+          <span>Disponível: <strong>${pesoAtual}g</strong></span>
+          <span>${pct.toFixed(0)}%</span>
+        </div>
+        <div class="fpeso-bar"><div class="fpeso-fill" style="width:${pct}%;background:${barColor};"></div></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">${pesoPorRolo}g por rolo · ${pesoTotal}g no total</div>
+      </div>
+      ${detalhes.length ? `<div class="fmeta">${detalhes.join(' · ')}</div>` : ''}
+      ${f.valor ? `<div class="fmeta">R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>` : ''}
+      ${f.nota ? `<div class="fnote">${f.nota}</div>` : ''}
+      <div class="fcontrols">
+        <button class="qty-btn" data-id="${f.id}" data-delta="-1" ${Number(f.quantidade)<=0?'disabled':''}>−</button>
+        <button class="qty-btn" data-id="${f.id}" data-delta="1">+</button>
+      </div>
+      <button class="btn-uso" data-id="${f.id}">Registrar uso</button>
+      <div class="hist-wrap">
+        <button class="hist-toggle" data-id="${f.id}">Ver histórico de uso</button>
+        <div class="hist-list" id="hist-${f.id}"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  document.querySelectorAll('.btn-uso').forEach(b=>b.addEventListener('click',()=>{
+    const f = filaments.find(x=>String(x.id)===String(b.dataset.id));
+    if(f) abrirModalUso(f);
+  }));
+  document.querySelectorAll('.hist-toggle').forEach(b=>b.addEventListener('click',()=>{
+    const id = b.dataset.id;
+    const lista = document.getElementById('hist-'+id);
+    if(lista.style.display === 'block'){
+      lista.style.display = 'none';
+      b.textContent = 'Ver histórico de uso';
+    } else {
+      lista.style.display = 'block';
+      b.textContent = 'Ocultar histórico';
+      carregarHistorico(id);
+    }
+  }));
+  document.querySelectorAll('.fedit').forEach(b=>b.addEventListener('click',()=>{
+    const f = filaments.find(x=>String(x.id)===String(b.dataset.id));
+    if(f) setEditMode(f);
+  }));
+  document.querySelectorAll('.fdel').forEach(b=>b.addEventListener('click',()=>deleteFilament(b.dataset.id)));
+  document.querySelectorAll('.qty-btn').forEach(b=>b.addEventListener('click',()=>{
+    const id = b.dataset.id;
+    const delta = parseInt(b.dataset.delta);
+    updateQty(id, delta);
+  }));
+}
+
+async function loadFilaments(){
+  // Verifica trial antes de carregar
+  if(currentUser && currentUser.email !== ADMIN_EMAIL){
+    try{
+      const {data:ass} = await db.from('assinaturas').select('*').eq('user_id',currentUser.id).single();
+      if(ass){
+        const statusLivre = ['liberado','fundador','ativo'];
+        const trialFim = ass.trial_fim ? new Date(ass.trial_fim) : null;
+        const trialVencido = trialFim && new Date() > trialFim;
+        if(ass.status === 'bloqueado' || (trialVencido && !statusLivre.includes(ass.status))){
+          if(trialVencido && ass.status === 'trial'){
+            await db.from('assinaturas').update({status:'vencido'}).eq('user_id',currentUser.id);
+          }
+          mostrarTelaBloqueio(ass);
+          return;
+        }
+      }
+    }catch(e){ console.error('Erro verificar trial:',e); }
+  }
+  const st=document.getElementById('loadStatus');
+  st.style.display='block'; st.textContent='Carregando dados...'; st.classList.remove('error');
+  const {data,error}=await db.from('filamentos').select('*').order('nome');
+  if(error){st.textContent='Erro: '+error.message;st.classList.add('error');return;}
+  filaments=data||[]; st.style.display='none'; render();
+  verificarNotificacoes();
+}
+
+async function addFilament(f){
+  const btn=document.getElementById('submitBtn'), st=document.getElementById('formStatus');
+  btn.disabled=true; btn.textContent='Salvando...'; st.textContent=''; st.classList.remove('error');
+  f.user_id = currentUser.id;
+  const {data,error}=await db.from('filamentos').insert([f]).select();
+  btn.disabled=false; btn.textContent='➕ Adicionar filamento';
+  if(error){st.textContent='Erro: '+error.message;st.classList.add('error');return;}
+  filaments.push(data[0]);
+  clearEditMode();
+  render();
+}
+
+async function saveEdit(id, dados){
+  const btn=document.getElementById('submitBtn'), st=document.getElementById('formStatus');
+  btn.disabled=true; btn.textContent='Salvando...'; st.textContent=''; st.classList.remove('error');
+  const {data,error}=await db.from('filamentos').update(dados).eq('id',id).select();
+  btn.disabled=false;
+  if(error){btn.textContent='Salvar alterações'; st.textContent='Erro: '+error.message;st.classList.add('error');return;}
+  const idx = filaments.findIndex(f=>f.id===id);
+  if(idx!==-1) filaments[idx] = data[0];
+  clearEditMode();
+  render();
+  st.textContent='Filamento atualizado com sucesso.';
+  setTimeout(()=>{ st.textContent=''; }, 3000);
+}
+
+// Modal de uso
+let usoFilamentoId = null;
+function abrirModalUso(f){
+  usoFilamentoId = f.id;
+  const pesoPorRolo = Number(f.peso_por_rolo) || 1000;
+  const qtd = Number(f.quantidade) || 1;
+  const pesoTotal = pesoPorRolo * qtd;
+  const pesoAtual = Number(f.peso_atual) !== undefined ? Number(f.peso_atual) : pesoTotal;
+  document.getElementById('usoModalSub').textContent = `${f.nome} — ${f.material}`;
+  document.getElementById('usoModalInfo').innerHTML = `
+    <strong>Rolos:</strong> ${qtd} &nbsp;|&nbsp;
+    <strong>Peso por rolo:</strong> ${pesoPorRolo}g &nbsp;|&nbsp;
+    <strong>Disponível:</strong> ${pesoAtual}g
+  `;
+  document.getElementById('usoGramas').value = '';
+  document.getElementById('usoStatus').textContent = '';
+  document.getElementById('usoModal').classList.add('open');
+  document.getElementById('usoGramas').focus();
+}
+
+document.getElementById('usoCancelarBtn').addEventListener('click',()=>{
+  document.getElementById('usoModal').classList.remove('open');
+});
+
+document.getElementById('usoSalvarBtn').addEventListener('click', async ()=>{
+  const gramas = parseInt(document.getElementById('usoGramas').value);
+  const st = document.getElementById('usoStatus');
+  if(!gramas || gramas <= 0){ st.textContent = 'Informe quantas gramas foram usadas.'; st.classList.add('error'); return; }
+  const f = filaments.find(x=>String(x.id)===String(usoFilamentoId));
+  if(!f) return;
+  const pesoAtual = Number(f.peso_atual) || Number(f.peso_total) || 1000;
+  if(gramas > pesoAtual){ st.textContent = `Valor maior que o peso disponível (${pesoAtual}g).`; st.classList.add('error'); return; }
+  const novoPeso = pesoAtual - gramas;
+  st.textContent = ''; st.classList.remove('error');
+  document.getElementById('usoSalvarBtn').disabled = true;
+  document.getElementById('usoSalvarBtn').textContent = 'Salvando...';
+
+  // Salvar histórico
+  const { data: { user } } = await db.auth.getUser();
+  await db.from('historico_uso').insert([{
+    filamento_id: f.id,
+    user_id: user ? user.id : null,
+    gramas_usadas: gramas,
+    peso_antes: pesoAtual,
+    peso_depois: novoPeso
+  }]);
+
+  // Calcular nova quantidade de rolos
+  const pesoPorRolo = Number(f.peso_por_rolo) || 1000;
+  const novaQtd = novoPeso > 0 ? Math.ceil(novoPeso / pesoPorRolo) : 0;
+
+  // Atualizar peso_atual e quantidade no filamento
+  const {error} = await db.from('filamentos').update({peso_atual: novoPeso, quantidade: novaQtd}).eq('id', f.id);
+  document.getElementById('usoSalvarBtn').disabled = false;
+  document.getElementById('usoSalvarBtn').textContent = 'Registrar';
+  if(error){ st.textContent = 'Erro: '+error.message; st.classList.add('error'); return; }
+  f.peso_atual = novoPeso;
+  f.quantidade = novaQtd;
+  document.getElementById('usoModal').classList.remove('open');
+  render();
+});
+
+async function carregarHistorico(filamentoId){
+  const lista = document.getElementById('hist-'+filamentoId);
+  lista.innerHTML = '<div class="hist-item">Carregando...</div>';
+  const {data, error} = await db.from('historico_uso')
+    .select('*').eq('filamento_id', filamentoId)
+    .order('created_at', {ascending: false}).limit(10);
+  if(error){
+    lista.innerHTML = '<div class="hist-item">Erro ao carregar histórico.</div>';
+    console.error(error);
+    return;
+  }
+  if(!data || data.length === 0){
+    lista.innerHTML = '<div class="hist-item">Nenhum uso registrado ainda.</div>';
+    return;
+  }
+  lista.innerHTML = data.map(h=>{
+    const dt = new Date(h.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div class="hist-item">📅 ${dt} — <strong>${h.gramas_usadas}g</strong> usados · restaram <strong>${h.peso_depois}g</strong></div>`;
+  }).join('');
+}
+
+async function updateQty(id, delta){
+  const f = filaments.find(x=>String(x.id)===String(id));
+  if(!f) return;
+  const newQty = Math.max(0, Number(f.quantidade) + delta);
+  const pesoPorRolo = Number(f.peso_por_rolo) || 1000;
+
+  // Se está adicionando rolo, aumenta o peso_atual proporcionalmente
+  // Se está removendo, diminui também
+  const pesoAtual = Number(f.peso_atual) || pesoPorRolo * Number(f.quantidade);
+  let novoPesoAtual;
+  if(delta > 0){
+    // Adicionando rolo — soma o peso de um rolo novo
+    novoPesoAtual = pesoAtual + pesoPorRolo;
+  } else {
+    // Removendo rolo — subtrai um rolo completo mas não vai abaixo de 0
+    novoPesoAtual = Math.max(0, pesoAtual - pesoPorRolo);
+  }
+  const novoPesoTotal = pesoPorRolo * newQty;
+
+  const {error}=await db.from('filamentos').update({
+    quantidade: newQty,
+    peso_atual: novoPesoAtual,
+    peso_total: novoPesoTotal
+  }).eq('id',id);
+  if(error){alert('Erro: '+error.message);return;}
+  f.quantidade = newQty;
+  f.peso_atual = novoPesoAtual;
+  f.peso_total = novoPesoTotal;
+  render();
+}
+
+async function deleteFilament(id){
+  if(!confirm('Remover este filamento da lista?')) return;
+  const {error}=await db.from('filamentos').delete().eq('id',id);
+  if(error){alert('Erro: '+error.message);return;}
+  filaments=filaments.filter(f=>String(f.id)!==String(id)); render();
+}
+
+document.getElementById('filForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const dados = {
+    nome:document.getElementById('fNome').value,
+    material:document.getElementById('fMaterial').value,
+    marca:document.getElementById('fMarca').value || null,
+    cor:document.getElementById('fCor').value,
+    quantidade:parseInt(document.getElementById('fQtd').value||0),
+    fornecedor:getFornecedor('fFornecedorSelect','fFornecedor'),
+    valor:document.getElementById('fValor').value ? parseFloat(document.getElementById('fValor').value) : null,
+    nota:document.getElementById('fNota').value || null,
+    peso_total:parseInt(document.getElementById('fPesoPorRolo').value||1000) * parseInt(document.getElementById('fQtd').value||1),
+    peso_atual:parseInt(document.getElementById('fPesoPorRolo').value||1000) * parseInt(document.getElementById('fQtd').value||1),
+    peso_por_rolo:parseInt(document.getElementById('fPesoPorRolo').value||1000),
+  };
+  if(editingId){
+    saveEdit(editingId, dados);
+  } else {
+    addFilament(dados);
+  }
+});
+
+document.getElementById('cancelEditBtn').addEventListener('click', clearEditMode);
+document.getElementById('searchBox').addEventListener('input', render);
+document.getElementById('filterMaterial').addEventListener('change', render);
+
+document.getElementById('navHistorico').addEventListener('click', (e)=>{
+  e.preventDefault();
+  mostrarTela('telaHistorico');
+  document.getElementById('navHistorico').classList.add('active');
+  // popular select com filamentos
+  const sel = document.getElementById('histFilSelect');
+  sel.innerHTML = '<option value="">Selecione um filamento...</option>' +
+    filaments.map(f=>`<option value="${f.id}">${f.nome} — ${f.material}</option>`).join('');
+  document.getElementById('histTelaConteudo').innerHTML = '';
+});
+
+document.getElementById('navAdmin').addEventListener('click', (e)=>{
+  e.preventDefault();
+  mostrarTela('telaAdmin');
+  document.getElementById('navAdmin').classList.add('active');
+  carregarPainelAdmin();
+});
+
+document.getElementById('histFilSelect').addEventListener('change', async ()=>{
+  const id = document.getElementById('histFilSelect').value;
+  const conteudo = document.getElementById('histTelaConteudo');
+  if(!id){ conteudo.innerHTML = ''; return; }
+
+  conteudo.innerHTML = '<div class="hist-tela-vazio">Carregando...</div>';
+  const {data, error} = await db.from('historico_uso')
+    .select('*').eq('filamento_id', id)
+    .order('created_at', {ascending: false});
+
+  if(error){ conteudo.innerHTML = '<div class="hist-tela-vazio">Erro ao carregar histórico.</div>'; return; }
+  if(!data || data.length === 0){ conteudo.innerHTML = '<div class="hist-tela-vazio">Nenhum uso registrado para este filamento.</div>'; return; }
+
+  const totalUsado = data.reduce((s,h)=>s+Number(h.gramas_usadas),0);
+  const f = filaments.find(x=>String(x.id)===String(id));
+  const pesoAtual = f ? Number(f.peso_atual) : 0;
+
+  conteudo.innerHTML = `
+    <div class="hist-tela-resumo">
+      <div class="hr-item"><div class="hr-label">Total usado</div><div class="hr-val">${totalUsado}g</div></div>
+      <div class="hr-item"><div class="hr-label">Peso atual</div><div class="hr-val">${pesoAtual}g</div></div>
+      <div class="hr-item"><div class="hr-label">Registros</div><div class="hr-val">${data.length}</div></div>
+    </div>
+    ${data.map(h=>{
+      const dt = new Date(h.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div class="hist-tela-item">
+        <div>
+          <div class="ht-data">${dt}</div>
+          <div class="ht-resto">Restaram ${h.peso_depois}g após o uso</div>
+        </div>
+        <div class="ht-gramas">−${h.gramas_usadas}g</div>
+      </div>`;
+    }).join('')}
+  `;
+});
+// NOTIFICAÇÕES
+const LIMITE_AVISO = 100;
+
+async function verificarNotificacoes(){
+  if(!filaments.length) return;
+  const { data: { user } } = await db.auth.getUser();
+  if(!user) return;
+
+  const NOTIF_KEY = 'd3arte_notif_' + user.id;
+  const jaNotificados = JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]');
+  const jaNotificadosSet = new Set(jaNotificados);
+
+  const novosAvisos = filaments.filter(f =>
+    Number(f.peso_atual) <= LIMITE_AVISO &&
+    Number(f.peso_atual) > 0 &&
+    !jaNotificadosSet.has(String(f.id))
+  );
+
+  for(const f of novosAvisos){
+    const msg = `Filamento ${f.nome}${f.marca ? ' ('+f.marca+')' : ''} está com apenas ${f.peso_atual}g restantes.`;
+    await db.from('notificacoes').insert([{
+      user_id: user.id,
+      filamento_id: f.id,
+      mensagem: msg,
+      lida: false
+    }]).then(()=>{}).catch(()=>{});
+    jaNotificados.push(String(f.id));
+  }
+
+  localStorage.setItem(NOTIF_KEY, JSON.stringify(jaNotificados));
+
+  if(novosAvisos.length > 0){
+    const lista = document.getElementById('avisoLista');
+    lista.innerHTML = novosAvisos.map(f=>`
+      <div style="background:#fff8f0;border:1px solid #f5d0b0;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px;color:var(--ink);">
+        <strong>${f.nome}</strong>${f.marca ? ' — '+f.marca : ''}<br>
+        <span style="color:var(--accent);">Restam apenas ${f.peso_atual}g</span>
+      </div>
+    `).join('');
+    document.getElementById('avisoModal').classList.add('open');
+  }
+
+  await carregarBadgeNotificacoes();
+}
+
+async function carregarBadgeNotificacoes(){
+  const { data: { user } } = await db.auth.getUser();
+  if(!user) return;
+  const {data} = await db.from('notificacoes').select('lida').eq('user_id', user.id).eq('lida', false);
+  const badge = document.getElementById('notifBadge');
+  if(data && data.length > 0){
+    badge.style.display = 'inline-block';
+    badge.textContent = data.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+async function carregarNotificacoes(){
+  const { data: { user } } = await db.auth.getUser();
+  if(!user) return;
+  const {data, error} = await db.from('notificacoes')
+    .select('*').eq('user_id', user.id).order('created_at', {ascending: false});
+  if(error || !data) return;
+
+  const naoLidas = data.filter(n=>!n.lida).length;
+  const badge = document.getElementById('notifBadge');
+  badge.style.display = naoLidas > 0 ? 'inline-block' : 'none';
+  badge.textContent = naoLidas;
+
+  const lista = document.getElementById('notifLista');
+  if(!lista) return;
+  if(data.length === 0){
+    lista.innerHTML = '<div class="notif-vazio">Nenhuma notificação ainda.</div>';
+    return;
+  }
+  lista.innerHTML = data.map(n=>{
+    const dt = new Date(n.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div class="notif-item ${n.lida?'':'nao-lida'}">
+      <div class="notif-icon">🔔</div>
+      <div>
+        <div class="notif-msg">${n.mensagem}</div>
+        <div class="notif-data">${dt}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('avisoFechar').addEventListener('click',()=>{
+  document.getElementById('avisoModal').classList.remove('open');
+});
+
+document.getElementById('navNotifTopbar').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  mostrarTela('telaNotificacoes');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('navNotificacoes').classList.add('active');
+  await carregarNotificacoes();
+  const { data: { user } } = await db.auth.getUser();
+  if(user){
+    await db.from('notificacoes').update({lida:true}).eq('user_id', user.id).eq('lida', false);
+    document.getElementById('notifBadge').style.display = 'none';
+  }
+});
+
+document.getElementById('btnMarcarLidas').addEventListener('click', async ()=>{
+  const { data: { user } } = await db.auth.getUser();
+  if(user){
+    await db.from('notificacoes').update({lida:true}).eq('user_id', user.id);
+    document.getElementById('notifBadge').style.display = 'none';
+    await carregarNotificacoes();
+  }
+});
+
+// LISTA DE REPOSIÇÃO
+let listaReposicao = [];
+let comprandoItem = null;
+
+document.getElementById('navReposicao').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  mostrarTela('telaReposicao');
+  document.getElementById('navReposicao').classList.add('active');
+  await carregarReposicao();
+});
+
+document.getElementById('btnAbrirAddReposicao').addEventListener('click',()=>{
+  document.getElementById('formReposicaoWrap').style.display = 'block';
+  document.getElementById('rNome').focus();
+});
+
+document.getElementById('btnCancelarReposicao').addEventListener('click',()=>{
+  document.getElementById('formReposicaoWrap').style.display = 'none';
+  document.getElementById('rNome').value = '';
+  document.getElementById('rMaterial').value = '';
+  document.getElementById('rMarca').value = '';
+  document.getElementById('rQtd').value = 1;
+  document.getElementById('rFornecedorSelect').value = '';
+  document.getElementById('rFornecedor').style.display = 'none';
+  document.getElementById('rFornecedor').value = '';
+  document.getElementById('rNota').value = '';
+});
+
+document.getElementById('btnSalvarReposicao').addEventListener('click', async ()=>{
+  const nome = document.getElementById('rNome').value.trim();
+  const material = document.getElementById('rMaterial').value.trim();
+  const st = document.getElementById('repStatus');
+  if(!nome || !material){ st.textContent = 'Preencha nome e material.'; st.classList.add('error'); return; }
+  st.textContent = ''; st.classList.remove('error');
+  const { data: { user } } = await db.auth.getUser();
+  const {error} = await db.from('lista_reposicao').insert([{
+    user_id: user.id,
+    nome,
+    material,
+    marca: document.getElementById('rMarca').value.trim() || null,
+    quantidade: parseInt(document.getElementById('rQtd').value||1),
+    nota: document.getElementById('rNota').value.trim() || null,
+    fornecedor: getFornecedor('rFornecedorSelect','rFornecedor') || null
+  }]);
+  if(error){ st.textContent = 'Erro: '+error.message; st.classList.add('error'); return; }
+  document.getElementById('btnCancelarReposicao').click();
+  await carregarReposicao();
+});
+
+async function carregarReposicao(){
+  const {data, error} = await db.from('lista_reposicao').select('*').order('created_at', {ascending: false});
+  if(error) return;
+  listaReposicao = data || [];
+  renderReposicao();
+  // badge
+  const badge = document.getElementById('repBadge');
+  if(listaReposicao.length > 0){ badge.style.display='inline-block'; badge.textContent=listaReposicao.length; }
+  else { badge.style.display='none'; }
+}
+
+function renderReposicao(){
+  const grid = document.getElementById('repGrid');
+  const empty = document.getElementById('repEmpty');
+  grid.innerHTML = '';
+  empty.style.display = listaReposicao.length === 0 ? 'block' : 'none';
+  listaReposicao.forEach(item=>{
+    const card = document.createElement('div');
+    card.className = 'rep-card';
+    card.innerHTML = `
+      <div class="rep-nome">${item.nome}</div>
+      <div class="rep-material">${item.material}</div>
+      <div class="rep-meta">
+        ${item.marca ? `<div>Marca: <strong>${item.marca}</strong></div>` : ''}
+        ${item.quantidade ? `<div>Qtd: <strong>${item.quantidade} rolo${item.quantidade>1?'s':''}</strong></div>` : ''}
+        ${item.nota ? `<div>Obs: ${item.nota}</div>` : ''}
+      </div>
+      <div class="rep-actions">
+        <button class="btn-comprado" data-id="${item.id}">✅ Comprado</button>
+        <button class="btn-rep-del" data-id="${item.id}">✕</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  document.querySelectorAll('.btn-comprado').forEach(b=>b.addEventListener('click',()=>{
+    const item = listaReposicao.find(x=>String(x.id)===String(b.dataset.id));
+    if(item) abrirModalComprado(item);
+  }));
+  document.querySelectorAll('.btn-rep-del').forEach(b=>b.addEventListener('click',()=>deletarReposicao(b.dataset.id)));
+}
+
+async function deletarReposicao(id){
+  if(!confirm('Remover este item da lista?')) return;
+  await db.from('lista_reposicao').delete().eq('id', id);
+  listaReposicao = listaReposicao.filter(x=>String(x.id)!==String(id));
+  renderReposicao();
+}
+
+function abrirModalComprado(item){
+  comprandoItem = item;
+  document.getElementById('compradoSub').textContent = `${item.nome} — ${item.material}${item.marca?' ('+item.marca+')':''}`;
+  document.getElementById('cFornecedorSelect').value = '';
+  document.getElementById('cFornecedor').style.display = 'none';
+  document.getElementById('cFornecedor').value = '';
+  document.getElementById('cValor').value = '';
+  document.getElementById('cPeso').value = 1000;
+  document.getElementById('cCor').value = '#c2461d';
+  document.getElementById('compradoStatus').textContent = '';
+  document.getElementById('compradoModal').classList.add('open');
+}
+
+document.getElementById('btnCancelarCompra').addEventListener('click',()=>{
+  document.getElementById('compradoModal').classList.remove('open');
+});
+
+document.getElementById('btnConfirmarCompra').addEventListener('click', async ()=>{
+  if(!comprandoItem) return;
+  const st = document.getElementById('compradoStatus');
+  const pesoPorRolo = parseInt(document.getElementById('cPeso').value||1000);
+  const qtd = parseInt(comprandoItem.quantidade||1);
+  st.textContent = ''; st.classList.remove('error');
+  document.getElementById('btnConfirmarCompra').disabled = true;
+  document.getElementById('btnConfirmarCompra').textContent = 'Salvando...';
+  const { data: { user } } = await db.auth.getUser();
+  const {error} = await db.from('filamentos').insert([{
+    user_id: user.id,
+    nome: comprandoItem.nome,
+    material: comprandoItem.material,
+    marca: comprandoItem.marca || null,
+    cor: document.getElementById('cCor').value,
+    quantidade: qtd,
+    fornecedor: getFornecedor('cFornecedorSelect','cFornecedor'),
+    valor: document.getElementById('cValor').value ? parseFloat(document.getElementById('cValor').value) : null,
+    peso_por_rolo: pesoPorRolo,
+    peso_total: pesoPorRolo * qtd,
+    peso_atual: pesoPorRolo * qtd,
+    nota: comprandoItem.nota || null
+  }]);
+  document.getElementById('btnConfirmarCompra').disabled = false;
+  document.getElementById('btnConfirmarCompra').textContent = 'Adicionar ao estoque';
+  if(error){ st.textContent = 'Erro: '+error.message; st.classList.add('error'); return; }
+  await db.from('lista_reposicao').delete().eq('id', comprandoItem.id);
+  listaReposicao = listaReposicao.filter(x=>String(x.id)!==String(comprandoItem.id));
+  document.getElementById('compradoModal').classList.remove('open');
+  renderReposicao();
+  await loadFilaments();
+});
+
+// Selects de fornecedor
+function setupFornecedorSelect(selectId, inputId){
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(inputId);
+  if(!sel || !inp) return;
+  sel.addEventListener('change',()=>{
+    inp.style.display = sel.value === 'outros' ? 'block' : 'none';
+    if(sel.value !== 'outros') inp.value = '';
+  });
+}
+
+function getFornecedor(selectId, inputId){
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(inputId);
+  if(!sel) return null;
+  if(sel.value === 'outros') return inp.value.trim() || null;
+  return sel.value || null;
+}
+
+function setFornecedorSelect(selectId, inputId, value){
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(inputId);
+  if(!sel) return;
+  const opcoes = ['Mercado Livre','Shopee','Amazon','AliExpress'];
+  if(opcoes.includes(value)){
+    sel.value = value; inp.style.display = 'none';
+  } else if(value){
+    sel.value = 'outros'; inp.style.display = 'block'; inp.value = value;
+  } else {
+    sel.value = ''; inp.style.display = 'none';
+  }
+}
+
+setupFornecedorSelect('fFornecedorSelect','fFornecedor');
+setupFornecedorSelect('rFornecedorSelect','rFornecedor');
+setupFornecedorSelect('cFornecedorSelect','cFornecedor');
+
+function mostrarTela(id){
+  document.querySelectorAll('.tela').forEach(t=>t.classList.remove('ativa'));
+  document.getElementById(id).classList.add('ativa');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+}
+
+document.querySelector('.nav-item').addEventListener('click', (e)=>{
+  e.preventDefault();
+  mostrarTela('telaEstoque');
+  document.querySelector('.nav-item').classList.add('active');
+});
+
+// Menu hamburguer mobile
+document.getElementById('hamburgerBtn').addEventListener('click',()=>{
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+});
+document.getElementById('sidebarOverlay').addEventListener('click',()=>{
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+});
+
+document.getElementById('navFerramentasToggle').addEventListener('click', ()=>{
+  const menu = document.getElementById('navFerramentasMenu');
+  const toggle = document.getElementById('navFerramentasToggle');
+  const open = menu.style.display === 'none';
+  menu.style.display = open ? 'block' : 'none';
+  toggle.classList.toggle('open', open);
+});
+
+document.getElementById('navCalculadora').addEventListener('click', (e)=>{
+  e.preventDefault();
+  mostrarTela('telaCalculadora');
+  document.getElementById('navCalculadora').classList.add('active');
+});
+
+// Calculadora — cálculo em tempo real
+function calcular(){
+  const pesoTotal = parseFloat(document.getElementById('calcPesoTotal').value);
+  const valor = parseFloat(document.getElementById('calcValor').value);
+  const usado = parseFloat(document.getElementById('calcUsado').value);
+  const resultado = document.getElementById('calcResultado');
+  const valorGasto = document.getElementById('calcValorGasto');
+  const detalhe = document.getElementById('calcDetalhe');
+
+  if(!pesoTotal || !valor || !usado || pesoTotal <= 0){
+    resultado.classList.add('vazio');
+    valorGasto.textContent = 'Preencha os campos acima';
+    detalhe.textContent = '';
+    return;
+  }
+
+  const custoPorGrama = valor / pesoTotal;
+  const custo = custoPorGrama * usado;
+  const restante = Math.max(0, pesoTotal - usado);
+  const percentUsado = Math.min(100, (usado / pesoTotal * 100)).toFixed(1);
+
+  resultado.classList.remove('vazio');
+  valorGasto.textContent = 'R$ ' + custo.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  detalhe.textContent = `${usado}g usados de ${pesoTotal}g (${percentUsado}%) · Restam ${restante}g · R$ ${custoPorGrama.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4})} por grama`;
+}
+
+document.getElementById('calcPesoTotal').addEventListener('input', calcular);
+document.getElementById('calcValor').addEventListener('input', calcular);
+document.getElementById('calcUsado').addEventListener('input', calcular);
+document.getElementById('navEtiquetaToggle').addEventListener('click', ()=>{
+  const menu = document.getElementById('navEtiquetaMenu');
+  const toggle = document.getElementById('navEtiquetaToggle');
+  const open = menu.style.display === 'none';
+  menu.style.display = open ? 'block' : 'none';
+  toggle.classList.toggle('open', open);
+});
+
+let etqModo = 'simples';
+
+function abrirModalEtiqueta(modo){
+  etqModo = modo;
+  const list = document.getElementById('etqFilList');
+  list.innerHTML = filaments.map(f=>`
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;">
+      <input type="checkbox" class="etq-check" value="${f.id}" style="width:16px;height:16px;cursor:pointer;">
+      <span style="width:14px;height:14px;border-radius:3px;background:${f.cor||'#ccc'};flex-shrink:0;display:inline-block;border:1px solid rgba(0,0,0,0.15);"></span>
+      ${f.nome} — ${f.material}
+    </label>`).join('');
+  // check first by default
+  const first = list.querySelector('.etq-check');
+  if(first){ first.checked = true; }
+  list.querySelectorAll('.etq-check').forEach(cb => cb.addEventListener('change', renderEtiquetaPreview));
+  renderEtiquetaPreview();
+  document.getElementById('etqModal').classList.add('open');
+}
+
+document.getElementById('navEtiquetaSimples').addEventListener('click', (e)=>{
+  e.preventDefault();
+  abrirModalEtiqueta('simples');
+});
+document.getElementById('navEtiquetaPro').addEventListener('click', (e)=>{
+  e.preventDefault();
+  abrirModalEtiqueta('pro');
+});
+
+
+document.getElementById('etqCloseBtn').addEventListener('click', ()=>{
+  document.getElementById('etqModal').classList.remove('open');
+});
+
+function getFilamenteSelecionado(){
+  const checks = document.querySelectorAll('.etq-check:checked');
+  if(!checks.length) return null;
+  return filaments.find(f=>String(f.id)===String(checks[0].value));
+}
+function getFilamentosSelecionados(){
+  const checks = document.querySelectorAll('.etq-check:checked');
+  return Array.from(checks).map(cb => filaments.find(f=>String(f.id)===String(cb.value))).filter(Boolean);
+}
+
+function renderEtiquetaPreview(){
+  const f = getFilamenteSelecionado();
+  if(!f) return;
+  const preview = document.getElementById('etqPreview');
+  const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  const nomeMarca = cfgAtual.nome || brandName;
+
+  if(etqModo === 'simples'){
+    preview.innerHTML = `
+      <div class="etiqueta-simples" id="etqContent">
+        <div class="etq-header">
+          <div class="etq-swatch" style="background:${f.cor||'#ccc'}"></div>
+          <div>
+            <div class="etq-nome">${f.nome}</div>
+            <div class="etq-material">${f.material}</div>
+          </div>
+        </div>
+        <div class="etq-body">
+          ${f.marca ? `<div><span>Marca:</span> ${f.marca}</div>` : ''}
+          ${f.fornecedor ? `<div><span>Fornecedor:</span> ${f.fornecedor}</div>` : ''}
+          ${f.valor ? `<div><span>Valor:</span> R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>` : ''}
+          ${f.nota ? `<div><span>Obs:</span> ${f.nota}</div>` : ''}
+        </div>
+        <div class="etq-footer">${nomeMarca}</div>
+      </div>`;
+  } else {
+    preview.innerHTML = `
+      <div class="etiqueta-pro" id="etqContent">
+        <div class="etq-pro-left">
+          <div class="etq-header" style="border-bottom:2px solid #1a2340;margin-bottom:8px;padding-bottom:8px;">
+            <div class="etq-swatch" style="background:${f.cor||'#ccc'}"></div>
+            <div>
+              <div class="etq-nome">${f.nome}</div>
+              <div class="etq-material">${f.material}</div>
+            </div>
+          </div>
+          <div class="etq-body">
+            ${f.marca ? `<div><span>Marca:</span> ${f.marca}</div>` : ''}
+            ${f.fornecedor ? `<div><span>Fornecedor:</span> ${f.fornecedor}</div>` : ''}
+            ${f.valor ? `<div><span>Valor:</span> R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>` : ''}
+            ${f.nota ? `<div><span>Obs:</span> ${f.nota}</div>` : ''}
+          </div>
+          <div class="etq-footer">${nomeMarca}</div>
+        </div>
+        <div class="etq-pro-right">
+          <canvas id="etqQrCanvas"></canvas>
+          <div class="etq-qr-label">Escaneie para ver detalhes</div>
+        </div>
+      </div>`;
+
+    // Gerar QR Code
+    const qrUrl = `${window.location.href.split('?')[0]}?filamento=${f.id}`;
+    const qr = qrcode(0, 'M');
+    qr.addData(qrUrl);
+    qr.make();
+    setTimeout(() => {
+      const canvas = document.getElementById('etqQrCanvas');
+      if(!canvas) return;
+      const size = 72;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const cells = qr.getModuleCount();
+      const cellSize = size / cells;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0,0,size,size);
+      ctx.fillStyle = '#1a2340';
+      for(let r=0;r<cells;r++){
+        for(let c=0;c<cells;c++){
+          if(qr.isDark(r,c)){
+            ctx.fillRect(Math.floor(c*cellSize), Math.floor(r*cellSize), Math.ceil(cellSize), Math.ceil(cellSize));
+          }
+        }
+      }
+    }, 100);
+  }
+}
+
+document.getElementById('etqPrintBtn').addEventListener('click', async ()=>{
+  const selecionados = getFilamentosSelecionados();
+  if(!selecionados.length){ alert('Selecione ao menos um filamento.'); return; }
+  const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  const nomeMarca = cfgAtual.nome || brandName;
+
+  function gerarQR(url){
+    return new Promise(resolve=>{
+      const qr = qrcode(0,'M');
+      qr.addData(url); qr.make();
+      const tmpCanvas = document.createElement('canvas');
+      const size = 72;
+      tmpCanvas.width = size; tmpCanvas.height = size;
+      const ctx = tmpCanvas.getContext('2d');
+      const cells = qr.getModuleCount();
+      const cellSize = size/cells;
+      ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,size,size);
+      ctx.fillStyle='#1a2340';
+      for(let r=0;r<cells;r++) for(let c=0;c<cells;c++)
+        if(qr.isDark(r,c)) ctx.fillRect(Math.floor(c*cellSize),Math.floor(r*cellSize),Math.ceil(cellSize),Math.ceil(cellSize));
+      resolve(tmpCanvas.toDataURL());
+    });
+  }
+
+  function etqSimplesHtml(f){
+    return `<div class="etiqueta-simples">
+      <div class="etq-header">
+        <div class="etq-swatch" style="background:${f.cor||'#ccc'};"></div>
+        <div><div class="etq-nome">${f.nome}</div><div class="etq-material">${f.material}</div></div>
+      </div>
+      <div class="etq-body">
+        ${f.marca?`<div><span>Marca:</span> ${f.marca}</div>`:''}
+        ${f.fornecedor?`<div><span>Fornecedor:</span> ${f.fornecedor}</div>`:''}
+        ${f.valor?`<div><span>Valor:</span> R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>`:''}
+        ${f.nota?`<div><span>Obs:</span> ${f.nota}</div>`:''}
+      </div>
+      <div class="etq-footer">${nomeMarca}</div>
+    </div>`;
+  }
+
+  function etqProHtml(f, qrDataUrl){
+    return `<div class="etiqueta-pro">
+      <div class="etq-pro-left">
+        <div class="etq-header">
+          <div class="etq-swatch" style="background:${f.cor||'#ccc'};"></div>
+          <div><div class="etq-nome">${f.nome}</div><div class="etq-material">${f.material}</div></div>
+        </div>
+        <div class="etq-body">
+          ${f.marca?`<div><span>Marca:</span> ${f.marca}</div>`:''}
+          ${f.fornecedor?`<div><span>Fornecedor:</span> ${f.fornecedor}</div>`:''}
+          ${f.valor?`<div><span>Valor:</span> R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</div>`:''}
+          ${f.nota?`<div><span>Obs:</span> ${f.nota}</div>`:''}
+        </div>
+        <div class="etq-footer">${nomeMarca}</div>
+      </div>
+      <div class="etq-pro-right">
+        <img src="${qrDataUrl}" width="72" height="72">
+        <div class="etq-qr-label">Escaneie para ver detalhes</div>
+      </div>
+    </div>`;
+  }
+
+  let todasEtiquetas = '';
+  for(const f of selecionados){
+    if(etqModo === 'pro'){
+      const qrUrl = `${window.location.href.split('?')[0]}?filamento=${f.id}`;
+      const qrDataUrl = await gerarQR(qrUrl);
+      todasEtiquetas += etqProHtml(f, qrDataUrl);
+    } else {
+      todasEtiquetas += etqSimplesHtml(f);
+    }
+  }
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Etiquetas D3Arte</title>
+  <style>
+    body{margin:0;padding:20px;font-family:'Helvetica Neue',Arial,sans-serif;background:#fff;}
+    .etiquetas-wrap{display:flex;flex-wrap:wrap;gap:12px;}
+    .etiqueta-simples{width:226px;min-height:142px;border:2px solid #1a2340;border-radius:8px;padding:12px 14px;}
+    .etiqueta-pro{width:280px;min-height:160px;border:2px solid #1a2340;border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start;}
+    .etq-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:2px solid #1a2340;}
+    .etq-swatch{width:28px;height:28px;border-radius:6px;border:1px solid rgba(0,0,0,0.1);flex-shrink:0;}
+    .etq-nome{font-size:15px;font-weight:800;color:#1a2340;line-height:1.2;}
+    .etq-material{font-size:10px;color:#6b7a99;text-transform:uppercase;letter-spacing:0.5px;}
+    .etq-body{font-size:11px;color:#3a4a6a;line-height:1.7;}
+    .etq-body span{font-weight:600;color:#1a2340;}
+    .etq-footer{margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f4;font-size:9px;color:#9aa5bf;text-align:right;}
+    .etq-pro-left{flex:1;}
+    .etq-pro-right{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;}
+    .etq-qr-label{font-size:8px;color:#9aa5bf;text-align:center;max-width:72px;line-height:1.3;}
+    @media print{@page{size:auto;margin:10mm;}}
+  </style></head><body>
+  <div class="etiquetas-wrap">${todasEtiquetas}</div>
+  </body></html>`;
+
+  const win = window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); }, 400);
+});
+// Nav print
+document.getElementById('navPrint').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('printBtn-trigger').click();
+});
+
+// Print
+function doPrint(){
+  const data = new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'long',year:'numeric'});
+  const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  const nome = cfgAtual.nome || brandName;
+  const rows = filaments.map(f => `
+    <tr>
+      <td><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${f.cor||'#ccc'};vertical-align:middle;margin-right:6px;"></span>${f.nome}</td>
+      <td>${f.material}</td>
+      <td>${f.marca || '—'}</td>
+      <td>${f.fornecedor || '—'}</td>
+      <td style="text-align:center;">${f.quantidade}</td>
+      <td style="text-align:right;">${f.valor ? 'R$ ' + Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—'}</td>
+      <td>${f.nota || ''}</td>
+    </tr>
+  `).join('');
+  const totRolos = filaments.reduce((s,f)=>s+Number(f.quantidade),0);
+  const totValor = filaments.reduce((s,f)=>f.valor?s+Number(f.valor)*Number(f.quantidade):s,0);
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${nome} — Estoque de Filamentos</title>
+    <style>body{font-family:Arial,sans-serif;padding:24px;color:#1e2a3a;}h1{font-family:Georgia,serif;font-size:22px;margin:0 0 4px;}
+    .sub{font-size:12px;color:#888;margin-bottom:20px;}table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{background:#e8f0fe;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#2d5be3;}
+    td{padding:8px 10px;border-bottom:1px solid #e2e8f4;vertical-align:middle;}tr:last-child td{border-bottom:none;}
+    .totals{margin-top:16px;font-size:13px;color:#555;}.totals strong{color:#1e2a3a;}</style>
+    </head><body>
+    <h1>${nome} — Estoque de Filamentos</h1>
+    <div class="sub">Gerado em ${data}</div>
+    <table><thead><tr><th>Cor / Nome</th><th>Material</th><th>Marca</th><th>Fornecedor</th><th style="text-align:center;">Qtd</th><th style="text-align:right;">Valor/rolo</th><th>Observação</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="totals"><strong>Total de rolos:</strong> ${totRolos} &nbsp;|&nbsp; <strong>Valor total:</strong> R$ ${totValor.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+    </body></html>`;
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); }, 500);
+}
+// hidden trigger for print
+const hiddenPrint = document.createElement('button');
+hiddenPrint.id = 'printBtn-trigger';
+hiddenPrint.style.display = 'none';
+hiddenPrint.addEventListener('click', doPrint);
+document.body.appendChild(hiddenPrint);
+
+// Welcome modal
+const WELCOME_KEY = 'd3arte_welcome_shown';
+function checkWelcome(){
+  const welcomeKey = WELCOME_KEY + '_' + (currentUser ? currentUser.id : 'guest');
+  if(!localStorage.getItem(welcomeKey)){
+    document.getElementById('welcomeModal').classList.add('open');
+  }
+  const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  const n = cfgAtual.nome || brandName;
+  document.getElementById('brandHeader').textContent = n;
+  document.getElementById('sidebarClientName').textContent = n;
+  document.getElementById('welcomeTitle').textContent = 'Bem-vindo ao ' + n + ' Estoque!';
+  document.getElementById('printTitle').textContent = n + ' — Estoque de Filamentos';
+  document.title = n + ' | Estoque de Filamentos';
+}
+
+document.getElementById('welcomeClose').addEventListener('click', ()=>{
+  const nome = document.getElementById('welcomeNome').value.trim();
+  if(!nome){
+    document.getElementById('welcomeNomeErr').style.display = 'block';
+    document.getElementById('welcomeNome').focus();
+    return;
+  }
+  const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  cfgAtual.nome = nome;
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfgAtual));
+  document.getElementById('brandHeader').textContent = nome;
+  document.getElementById('sidebarClientName').textContent = nome;
+  document.getElementById('printTitle').textContent = nome + ' — Estoque de Filamentos';
+  document.title = nome + ' | Estoque de Filamentos';
+  document.getElementById('userGreeting').textContent = 'Olá, ' + nome + '!';
+  document.getElementById('welcomeModal').classList.remove('open');
+  const welcomeKey = WELCOME_KEY + '_' + (currentUser ? currentUser.id : 'guest');
+  localStorage.setItem(welcomeKey, '1');
+});
+
+document.getElementById('cfgSave').addEventListener('click',()=>{
+  const url=document.getElementById('cfgUrl').value.trim();
+  const key=document.getElementById('cfgKey').value.trim();
+  const err=document.getElementById('cfgError');
+  if(!url||!key){err.textContent='Preencha a URL e a chave.';err.style.display='block';return;}
+  localStorage.setItem(CFG_KEY,JSON.stringify({url,key}));
+  location.reload();
+});
+
+async function mostrarPaginaPublica(filamentoId){
+  document.getElementById('publicScreen').style.display='block';
+  if(!cfg||!cfg.url||!cfg.key){
+    document.getElementById('pubConteudo').innerHTML='<p>App não configurado.</p>';
+    return;
+  }
+  try{
+    const dbPub = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const {data:f, error} = await dbPub.from('filamentos').select('*').eq('id', filamentoId).single();
+    if(error||!f){
+      document.getElementById('pubConteudo').innerHTML='<p style="color:#c2461d;">Filamento não encontrado.</p>';
+      return;
+    }
+    const pesoPorRolo = Number(f.peso_por_rolo)||1000;
+    const pesoAtual = Number(f.peso_atual)||pesoPorRolo;
+    const pesoTotal = pesoPorRolo * Number(f.quantidade||1);
+    const pct = Math.max(0,Math.min(100,(pesoAtual/pesoTotal)*100));
+    const barColor = pct>50?'#2d5be3':pct>20?'#d97706':'#c2461d';
+    const {data:hist} = await dbPub.from('historico_uso').select('*').eq('filamento_id', filamentoId).order('created_at',{ascending:false}).limit(5);
+    const histHtml = hist && hist.length > 0 ? hist.map(h=>{
+      const dt = new Date(h.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f2f5;font-size:13px;">
+        <span style="color:#6b7280;">${dt}</span>
+        <span style="color:#c2461d;font-weight:700;">−${h.gramas_usadas}g</span>
+      </div>`;
+    }).join('') : '<p style="color:#8a94a6;font-size:13px;text-align:center;">Nenhum uso registrado ainda.</p>';
+    const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY)||'{}');
+    document.getElementById('pubBrand').textContent = cfgAtual.nome || 'D3Arte';
+    document.getElementById('pubConteudo').innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <div style="width:48px;height:48px;border-radius:12px;background:${f.cor||'#ccc'};border:2px solid rgba(0,0,0,0.08);flex-shrink:0;"></div>
+        <div style="text-align:left;">
+          <div style="font-size:20px;font-weight:800;color:#1a2340;">${f.nome}</div>
+          <div style="font-size:12px;color:#8a94a6;text-transform:uppercase;letter-spacing:0.5px;">${f.material}</div>
+        </div>
+      </div>
+      ${f.marca?`<div style="font-size:13px;color:#6b7280;margin-bottom:4px;text-align:left;">Marca: <strong style="color:#1a2340;">${f.marca}</strong></div>`:''}
+      ${f.fornecedor?`<div style="font-size:13px;color:#6b7280;margin-bottom:4px;text-align:left;">Fornecedor: <strong style="color:#1a2340;">${f.fornecedor}</strong></div>`:''}
+      ${f.valor?`<div style="font-size:13px;color:#6b7280;margin-bottom:16px;text-align:left;">Valor: <strong style="color:#1a2340;">R$ ${Number(f.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})} / rolo</strong></div>`:''}
+      <div style="background:#f4f6fb;border-radius:10px;padding:16px;margin:16px 0;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:6px;">
+          <span>Disponível: <strong style="color:#1a2340;">${pesoAtual}g</strong></span>
+          <strong style="color:${barColor};">${pct.toFixed(0)}%</strong>
+        </div>
+        <div style="height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${barColor};border-radius:4px;"></div>
+        </div>
+        <div style="font-size:11px;color:#8a94a6;margin-top:4px;">${pesoPorRolo}g por rolo · ${f.quantidade} rolo${f.quantidade==1?'':'s'}</div>
+      </div>
+      <div style="text-align:left;margin-top:20px;">
+        <div style="font-size:13px;font-weight:700;color:#1a2340;margin-bottom:10px;">Histórico de uso</div>
+        ${histHtml}
+      </div>
+      ${f.nota?`<div style="background:#fffbeb;border-radius:8px;padding:10px 12px;margin-top:16px;font-size:12px;color:#6b7280;text-align:left;font-style:italic;">${f.nota}</div>`:''}
+    `;
+  }catch(e){
+    document.getElementById('pubConteudo').innerHTML='<p style="color:#c2461d;">Erro ao carregar.</p>';
+  }
+}
+
+function init(){
+  // Verificar se é acesso via QR Code
+  const urlParams = new URLSearchParams(window.location.search);
+  const filamentoId = urlParams.get('filamento');
+  if(filamentoId){
+    mostrarPaginaPublica(filamentoId);
+    return;
+  }
+
+  try{
+    db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  }catch(e){
+    console.error('Erro ao conectar Supabase:',e.message);
+    return;
+  }
+  checkSession();
+}
+
+async function checkSession(){
+  const { data } = await db.auth.getSession();
+  if(data.session){
+    showApp(data.session.user);
+  } else {
+    document.getElementById('loginScreen').style.display='flex';
+if(new URLSearchParams(window.location.search).get('cadastro')){
+      document.getElementById('boxLogin').style.display='none';
+      document.getElementById('boxCadastro').style.display='flex';
+    } }
+}
+
+const ADMIN_EMAIL = 'jorgge_duarte@hotmail.com';
+
+function showApp(user){
+  currentUser = user;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('configScreen').style.display='none';
+  document.getElementById('appScreen').style.display='flex';
+  const cfgAtual = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+  const nomeUsuario = cfgAtual.nome || user.email;
+  document.getElementById('brandHeader').textContent = nomeUsuario;
+  document.getElementById('sidebarClientName').textContent = nomeUsuario;
+  document.getElementById('sidebarAvatar').textContent = nomeUsuario.charAt(0).toUpperCase();
+  document.getElementById('userGreeting').textContent = 'Olá, ' + nomeUsuario + '!';
+  if(user.email === ADMIN_EMAIL){
+    document.getElementById('navAdmin').style.display = 'flex';
+  }
+  loadFilaments();
+  checkWelcome();
+}
+
+async function verificarTrialBackground(user){
+  try {
+    const { data: assData, error } = await db.from('assinaturas').select('*').eq('user_id', user.id).single();
+    if(error || !assData) return;
+    const status = assData.status;
+    const trialFim = assData.trial_fim ? new Date(assData.trial_fim) : null;
+    const trialVencido = trialFim && new Date() > trialFim;
+    const statusLivre = ['liberado','fundador','ativo'];
+    if(status === 'bloqueado' || (trialVencido && !statusLivre.includes(status))){
+      if(trialVencido && status === 'trial'){
+        await db.from('assinaturas').update({status:'vencido'}).eq('user_id', user.id);
+      }
+      document.getElementById('appScreen').style.display='none';
+      mostrarTelaBloqueio(assData);
+    }
+  } catch(e) {
+    console.error('Erro ao verificar trial:', e);
+  }
+}
+
+async function mostrarTelaBloqueio(ass){
+  const bloqueio = document.getElementById('bloqueioScreen');
+  bloqueio.style.display = 'flex';
+  bloqueio.style.flexDirection = 'column';
+  bloqueio.style.alignItems = 'center';
+  bloqueio.style.justifyContent = 'center';
+
+  // Verifica quantos fundadores já existem
+  const { data: fundadores } = await db.from('assinaturas').select('id').eq('plano','fundador');
+  const totalFundadores = fundadores ? fundadores.length : 0;
+  const vagasRestantes = Math.max(0, 20 - totalFundadores);
+
+  if(vagasRestantes > 0){
+    document.getElementById('bloqueioPlanoFundador').style.display = 'block';
+    document.getElementById('bloqueioPlanoRecorrente').style.display = 'none';
+    document.getElementById('bloqueioTitulo').textContent = 'Seu período gratuito encerrou';
+    document.getElementById('bloqueioDesc').textContent = `Restam apenas ${vagasRestantes} vagas do Plano Fundador com acesso anual. Garanta a sua!`;
+  } else {
+    document.getElementById('bloqueioPlanoFundador').style.display = 'none';
+    document.getElementById('bloqueioPlanoRecorrente').style.display = 'block';
+    document.getElementById('bloqueioTitulo').textContent = 'Seu período gratuito encerrou';
+    document.getElementById('bloqueioDesc').textContent = 'Continue usando o D3Arte Filamentos por apenas R$ 9,90/mês.';
+  }
+}
+
+async function carregarPainelAdmin(){
+  const tbody = document.getElementById('admClientesTable');
+  tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--muted);">Carregando...</td></tr>';
+  const { data, error } = await db.from('assinaturas').select('*').order('criado_em', { ascending: false });
+  if(error){
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:14px;color:#d33;">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+  const lista = data || [];
+  const totalClientes = lista.length;
+  const totalTrial = lista.filter(c => c.status === 'trial').length;
+  const totalFundador = lista.filter(c => c.plano === 'fundador').length;
+  const vagasRestantes = Math.max(0, 20 - totalFundador);
+
+  document.getElementById('admTotalClientes').textContent = totalClientes;
+  document.getElementById('admTotalTrial').textContent = totalTrial;
+  document.getElementById('admVagasFundador').textContent = vagasRestantes;
+  document.getElementById('admVagasFundadorDesc').textContent = `de 20 restantes`;
+
+  if(!lista.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;color:var(--muted);">Nenhum cliente cadastrado ainda.</td></tr>';
+    return;
+  }
+
+  const statusLabel = { trial:'🟡 Trial', fundador:'🟢 Fundador', ativo:'🟢 Ativo', vencido:'🔴 Vencido', liberado:'🔓 Liberado', bloqueado:'⛔ Bloqueado' };
+  const planoLabel = { trial:'—', fundador:'Fundador (R$ 39,90 único)', recorrente:'Recorrente (R$ 9,90/mês)' };
+
+  tbody.innerHTML = lista.map(c => `
+    <tr style="border-bottom:1px solid var(--line);">
+      <td style="padding:8px 10px;">${c.email || '—'}</td>
+      <td style="padding:8px 10px;">${c.criado_em ? new Date(c.criado_em).toLocaleDateString('pt-BR') : '—'}</td>
+      <td style="padding:8px 10px;">${statusLabel[c.status] || c.status || '—'}</td>
+      <td style="padding:8px 10px;">${planoLabel[c.plano] || c.plano || '—'}</td>
+      <td style="padding:8px 10px;">${c.vencimento ? new Date(c.vencimento).toLocaleDateString('pt-BR') : '—'}</td>
+      <td style="padding:8px 10px;white-space:nowrap;">
+        ${c.status === 'bloqueado'
+          ? `<button class="admin-action-btn" data-id="${c.id}" data-action="liberar" style="background:#1fa85c;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;">Liberar</button>`
+          : `<button class="admin-action-btn" data-id="${c.id}" data-action="bloquear" style="background:#d33;color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;">Bloquear</button>`
+        }
+      </td>
+    </tr>
+  `).join('');
+
+  document.querySelectorAll('.admin-action-btn').forEach(btn => {
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      btn.disabled = true;
+      btn.textContent = '...';
+      const novoStatus = action === 'liberar' ? 'liberado' : 'bloqueado';
+      const { error: updError } = await db.from('assinaturas').update({ status: novoStatus }).eq('id', id);
+      if(updError){
+        alert('Erro ao atualizar: ' + updError.message);
+      }
+      carregarPainelAdmin();
+    });
+  });
+}
+
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  const err=document.getElementById('loginError'), info=document.getElementById('loginInfo');
+  err.style.display='none'; info.style.display='none';
+  if(!email||!password){err.textContent='Preencha e-mail e senha.'; err.style.display='block'; return;}
+  if(!db){
+    try{ db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
+    catch(e){ err.textContent='Erro de conexão: '+e.message; err.style.display='block'; return; }
+  }
+  const {data,error}=await db.auth.signInWithPassword({email,password});
+  if(error){err.textContent='Erro: '+error.message; err.style.display='block'; return;}
+  showApp(data.user);
+});
+
+// Alternar entre login e cadastro
+document.getElementById('irParaCadastro').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('boxLogin').style.display='none';
+  document.getElementById('boxCadastro').style.display='flex';
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('loginInfo').style.display='none';
+});
+
+document.getElementById('irParaLogin').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('boxCadastro').style.display='none';
+  document.getElementById('boxLogin').style.display='flex';
+  document.getElementById('cadastroError').style.display='none';
+});
+
+document.getElementById('cadastroBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('cadastroEmail').value.trim();
+  const senha = document.getElementById('cadastroSenha').value;
+  const confirmar = document.getElementById('cadastroConfirmar').value;
+  const err = document.getElementById('cadastroError');
+  err.style.display='none';
+
+  if(!email || !senha || !confirmar){
+    err.textContent='Preencha todos os campos.'; err.style.display='block'; return;
+  }
+  if(senha.length < 6){
+    err.textContent='A senha deve ter pelo menos 6 caracteres.'; err.style.display='block'; return;
+  }
+  if(senha !== confirmar){
+    err.textContent='As senhas não coincidem.'; err.style.display='block'; return;
+  }
+  if(!db){
+    try{ db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
+    catch(e){ err.textContent='Erro de conexão: '+e.message; err.style.display='block'; return; }
+  }
+
+  const btn = document.getElementById('cadastroBtn');
+  btn.disabled = true; btn.textContent = 'Criando conta...';
+
+  const {data, error} = await db.auth.signUp({email, password: senha});
+  btn.disabled = false; btn.textContent = 'Criar conta';
+
+  if(error){
+    const msg = error.message || JSON.stringify(error);
+    if(msg.includes('already') || msg.includes('registered') || msg === '{}' || !msg){
+      err.textContent='Este e-mail já está cadastrado. Tente entrar ou use outro e-mail.';
+    } else {
+      err.textContent='Erro: '+msg;
+    }
+    err.style.display='block'; return;
+  }
+  if(data.session){
+    showApp(data.user);
+  } else {
+    err.style.color='#1fa85c';
+    err.textContent='Conta criada com sucesso! Verifique seu e-mail para confirmar.';
+    err.style.display='block';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  await db.auth.signOut();
+  filaments=[]; currentUser=null;
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginPassword').value='';
+});
+
+init();
+</script>
+<div id="bloqueioScreen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#f0f2f8;z-index:9999;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
+  <div style="background:#fff;border-radius:16px;padding:36px 32px;max-width:440px;width:100%;box-shadow:0 4px 24px rgba(30,42,58,0.12);border:1px solid #e2e8f4;text-align:center;">
+    <div style="font-family:Georgia,serif;font-size:22px;color:#1a2340;margin-bottom:6px;font-weight:400;">D3Arte</div>
+    <div style="font-size:40px;margin-bottom:12px;">⏳</div>
+    <h2 id="bloqueioTitulo" style="font-size:20px;color:#1a2340;margin-bottom:8px;">Seu período gratuito encerrou</h2>
+    <p id="bloqueioDesc" style="font-size:14px;color:#6b7a99;margin-bottom:24px;line-height:1.6;">Para continuar usando o D3Arte Filamentos, escolha um plano abaixo.</p>
+    <div id="bloqueioPlanoFundador" style="display:none;background:#f0f7ff;border:2px solid #2d5be3;border-radius:12px;padding:20px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:#2d5be3;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">⭐ Plano Fundador — Vagas Limitadas</div>
+      <div style="font-size:28px;font-weight:800;color:#1a2340;">R$ 49,90<span style="font-size:14px;font-weight:400;color:#6b7a99;">/ano</span></div>
+      <div style="font-size:12px;color:#6b7a99;margin:6px 0 14px;">Pagamento único, acesso vitalício</div>
+      <button id="btnFundador" style="width:100%;background:#2d5be3;color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Quero ser Fundador</button>
+    </div>
+    <div id="bloqueioPlanoRecorrente" style="display:none;background:#f8fafc;border:1px solid #e2e8f4;border-radius:12px;padding:20px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:#1a2340;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Plano Mensal</div>
+      <div style="font-size:28px;font-weight:800;color:#1a2340;">R$ 9,90<span style="font-size:14px;font-weight:400;color:#6b7a99;">/mês</span></div>
+      <div style="font-size:12px;color:#6b7a99;margin:6px 0 14px;">Cancele quando quiser</div>
+      <button id="btnRecorrente" style="width:100%;background:#1a2340;color:#fff;border:none;padding:12px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Assinar agora</button>
+    </div>
+    <button onclick="db.auth.signOut().then(()=>{location.reload()})" style="background:none;border:none;color:#9aa5bf;font-size:12px;cursor:pointer;margin-top:8px;">Sair da conta</button>
+  </div>
+</div>
+
+<script>
+async function iniciarPagamento(plano){
+  const btn = document.getElementById(plano === 'fundador' ? 'btnFundador' : 'btnRecorrente');
+  const txtOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Aguarde...';
+  try {
+    const resp = await fetch('/api/create-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plano,
+        email: currentUser ? currentUser.email : '',
+        userId: currentUser ? currentUser.id : ''
+      })
+    });
+    const data = await resp.json();
+    if(data.init_point){
+      window.location.href = data.init_point;
+    } else {
+      alert('Erro ao iniciar pagamento: ' + (data.error || 'Tente novamente'));
+      btn.disabled = false;
+      btn.textContent = txtOriginal;
+    }
+  } catch(e) {
+    alert('Erro de conexão. Tente novamente.');
+    btn.disabled = false;
+    btn.textContent = txtOriginal;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btnF = document.getElementById('btnFundador');
+  const btnR = document.getElementById('btnRecorrente');
+  if(btnF) btnF.addEventListener('click', ()=> iniciarPagamento('fundador'));
+  if(btnR) btnR.addEventListener('click', ()=> iniciarPagamento('recorrente'));
+});
+</script>
+</body>
+</html>
