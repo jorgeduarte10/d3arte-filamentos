@@ -532,6 +532,20 @@
     <div class="auth-status" id="esqueciInfo" style="display:none;"></div>
   </div>
 
+  <!-- TELA NOVA SENHA (aberta a partir do link do e-mail) -->
+  <div class="auth-box" id="boxNovaSenha" style="display:none;flex-direction:column;">
+    <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
+    <h2>Crie sua nova senha</h2>
+    <p>Digite e confirme a nova senha da sua conta.</p>
+    <label>Nova senha</label>
+    <input type="password" id="novaSenha1" placeholder="••••••••">
+    <label>Confirmar nova senha</label>
+    <input type="password" id="novaSenha2" placeholder="••••••••">
+    <button class="btn-primary" id="novaSenhaBtn">Salvar nova senha</button>
+    <div class="auth-status error" id="novaSenhaError" style="display:none;"></div>
+    <div class="auth-status" id="novaSenhaInfo" style="display:none;"></div>
+  </div>
+
   <!-- TELA DE CADASTRO -->
   <div class="auth-box" id="boxCadastro" style="display:none;flex-direction:column;">
     <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
@@ -2229,6 +2243,18 @@ function init(){
     console.error('Erro ao conectar Supabase:',e.message);
     return;
   }
+
+  // Detecta se o cliente veio do link de redefinição de senha do e-mail
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('boxLogin').style.display = 'none';
+      document.getElementById('boxEsqueci').style.display = 'none';
+      document.getElementById('boxCadastro').style.display = 'none';
+      document.getElementById('boxNovaSenha').style.display = 'flex';
+    }
+  });
+
   checkSession();
 }
 
@@ -2425,6 +2451,35 @@ document.getElementById('esqueciBtn').addEventListener('click', async ()=>{
     info.textContent = 'Link enviado! Verifique seu e-mail.';
     info.style.display = 'block';
     info.style.color = '#1fa85c';
+  }
+});
+
+document.getElementById('novaSenhaBtn').addEventListener('click', async ()=>{
+  const senha1 = document.getElementById('novaSenha1').value;
+  const senha2 = document.getElementById('novaSenha2').value;
+  const err = document.getElementById('novaSenhaError');
+  const info = document.getElementById('novaSenhaInfo');
+  err.style.display='none'; info.style.display='none';
+
+  if(!senha1 || !senha2){ err.textContent='Preencha os dois campos.'; err.style.display='block'; return; }
+  if(senha1.length < 6){ err.textContent='A senha deve ter pelo menos 6 caracteres.'; err.style.display='block'; return; }
+  if(senha1 !== senha2){ err.textContent='As senhas não coincidem.'; err.style.display='block'; return; }
+
+  const btn = document.getElementById('novaSenhaBtn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  const { error } = await db.auth.updateUser({ password: senha1 });
+
+  btn.disabled = false; btn.textContent = 'Salvar nova senha';
+
+  if(error){
+    err.textContent = 'Erro: ' + error.message;
+    err.style.display = 'block';
+  } else {
+    info.textContent = 'Senha alterada com sucesso! Redirecionando...';
+    info.style.display = 'block';
+    info.style.color = '#1fa85c';
+    setTimeout(()=>{ window.location.href = '/app/'; }, 1800);
   }
 });
 
