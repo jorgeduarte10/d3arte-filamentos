@@ -510,8 +510,26 @@
     <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
       Não tem conta? <a href="#" id="irParaCadastro" style="color:var(--accent);font-weight:600;text-decoration:none;">Criar conta</a>
     </div>
+    <div style="text-align:center;margin-top:6px;font-size:12px;">
+      <a href="#" id="irParaEsqueci" style="color:var(--muted);text-decoration:none;">Esqueci minha senha</a>
+    </div>
     <div class="auth-status error" id="loginError" style="display:none;"></div>
     <div class="auth-status" id="loginInfo" style="display:none;"></div>
+  </div>
+
+  <!-- TELA ESQUECI MINHA SENHA -->
+  <div class="auth-box" id="boxEsqueci" style="display:none;flex-direction:column;">
+    <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
+    <h2>Redefinir senha</h2>
+    <p>Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
+    <label>E-mail</label>
+    <input type="email" id="esqueciEmail" placeholder="voce@email.com">
+    <button class="btn-primary" id="esqueciBtn">Enviar link</button>
+    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
+      Lembrou? <a href="#" id="voltarLogin" style="color:var(--accent);font-weight:600;text-decoration:none;">Voltar ao login</a>
+    </div>
+    <div class="auth-status error" id="esqueciError" style="display:none;"></div>
+    <div class="auth-status" id="esqueciInfo" style="display:none;"></div>
   </div>
 
   <!-- TELA DE CADASTRO -->
@@ -2366,6 +2384,50 @@ document.getElementById('loginBtn').addEventListener('click', async ()=>{
 });
 
 // Alternar entre login e cadastro
+// Esqueci minha senha
+document.getElementById('irParaEsqueci').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('boxLogin').style.display='none';
+  document.getElementById('boxEsqueci').style.display='flex';
+  document.getElementById('loginError').style.display='none';
+  document.getElementById('loginInfo').style.display='none';
+});
+
+document.getElementById('voltarLogin').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('boxEsqueci').style.display='none';
+  document.getElementById('boxLogin').style.display='flex';
+  document.getElementById('esqueciError').style.display='none';
+  document.getElementById('esqueciInfo').style.display='none';
+});
+
+document.getElementById('esqueciBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('esqueciEmail').value.trim();
+  const err = document.getElementById('esqueciError');
+  const info = document.getElementById('esqueciInfo');
+  err.style.display='none'; info.style.display='none';
+
+  if(!email){ err.textContent='Digite seu e-mail.'; err.style.display='block'; return; }
+
+  const btn = document.getElementById('esqueciBtn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://d3arte-filamentos.vercel.app/app/?resetPassword=1'
+  });
+
+  btn.disabled = false; btn.textContent = 'Enviar link';
+
+  if(error){
+    err.textContent = 'Erro: ' + error.message;
+    err.style.display = 'block';
+  } else {
+    info.textContent = 'Link enviado! Verifique seu e-mail.';
+    info.style.display = 'block';
+    info.style.color = '#1fa85c';
+  }
+});
+
 document.getElementById('irParaCadastro').addEventListener('click', (e)=>{
   e.preventDefault();
   document.getElementById('boxLogin').style.display='none';
