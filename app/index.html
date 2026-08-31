@@ -517,38 +517,23 @@
     <div class="auth-status" id="loginInfo" style="display:none;"></div>
   </div>
 
-  <!-- TELA ESQUECI MINHA SENHA -->
+  <!-- TELA ESQUECI MINHA SENHA (redefinição direta, sem confirmação por e-mail) -->
   <div class="auth-box" id="boxEsqueci" style="display:none;flex-direction:column;">
     <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
     <h2>Redefinir senha</h2>
-    <p>Digite seu e-mail e enviaremos um código de 6 dígitos.</p>
+    <p>Digite seu e-mail e a nova senha.</p>
     <label>E-mail</label>
     <input type="email" id="esqueciEmail" placeholder="voce@email.com">
-    <button class="btn-primary" id="esqueciBtn">Enviar código</button>
+    <label>Nova senha</label>
+    <input type="password" id="novaSenha1" placeholder="••••••••">
+    <label>Confirmar nova senha</label>
+    <input type="password" id="novaSenha2" placeholder="••••••••">
+    <button class="btn-primary" id="esqueciBtn">Redefinir senha</button>
     <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
       Lembrou? <a href="#" id="voltarLogin" style="color:var(--accent);font-weight:600;text-decoration:none;">Voltar ao login</a>
     </div>
     <div class="auth-status error" id="esqueciError" style="display:none;"></div>
     <div class="auth-status" id="esqueciInfo" style="display:none;"></div>
-  </div>
-
-  <!-- TELA NOVA SENHA (código + nova senha, tudo no app) -->
-  <div class="auth-box" id="boxNovaSenha" style="display:none;flex-direction:column;">
-    <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
-    <h2>Crie sua nova senha</h2>
-    <p>Digite o código que enviamos para <strong id="novaSenhaEmailTexto"></strong> e sua nova senha.</p>
-    <label>Código de 6 dígitos</label>
-    <input type="text" id="novaSenhaCodigo" placeholder="000000" maxlength="6" inputmode="numeric">
-    <label>Nova senha</label>
-    <input type="password" id="novaSenha1" placeholder="••••••••">
-    <label>Confirmar nova senha</label>
-    <input type="password" id="novaSenha2" placeholder="••••••••">
-    <button class="btn-primary" id="novaSenhaBtn">Redefinir senha</button>
-    <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
-      Não recebeu? <a href="#" id="reenviarCodigo" style="color:var(--accent);font-weight:600;text-decoration:none;">Reenviar código</a>
-    </div>
-    <div class="auth-status error" id="novaSenhaError" style="display:none;"></div>
-    <div class="auth-status" id="novaSenhaInfo" style="display:none;"></div>
   </div>
 
   <!-- TELA DE CADASTRO -->
@@ -2421,102 +2406,53 @@ document.getElementById('voltarLogin').addEventListener('click', (e)=>{
   document.getElementById('esqueciInfo').style.display='none';
 });
 
-let emailRecuperacao = '';
-
-async function enviarCodigoRecuperacao(email, btn, err, info){
-  btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Enviando...';
-
-  const { error } = await db.auth.resetPasswordForEmail(email);
-
-  btn.disabled = false; btn.textContent = textoOriginal;
-
-  if(error){
-    err.textContent = 'Erro: ' + error.message;
-    err.style.display = 'block';
-    return false;
-  }
-  info.textContent = 'Código enviado! Verifique seu e-mail.';
-  info.style.display = 'block';
-  info.style.color = '#1fa85c';
-  return true;
-}
-
 document.getElementById('esqueciBtn').addEventListener('click', async ()=>{
   const email = document.getElementById('esqueciEmail').value.trim();
+  const senha1 = document.getElementById('novaSenha1').value;
+  const senha2 = document.getElementById('novaSenha2').value;
   const err = document.getElementById('esqueciError');
   const info = document.getElementById('esqueciInfo');
   const btn = document.getElementById('esqueciBtn');
   err.style.display='none'; info.style.display='none';
 
   if(!email){ err.textContent='Digite seu e-mail.'; err.style.display='block'; return; }
-
-  const ok = await enviarCodigoRecuperacao(email, btn, err, info);
-  if(ok){
-    emailRecuperacao = email;
-    document.getElementById('novaSenhaEmailTexto').textContent = email;
-    document.getElementById('novaSenhaCodigo').value = '';
-    document.getElementById('novaSenha1').value = '';
-    document.getElementById('novaSenha2').value = '';
-    document.getElementById('novaSenhaError').style.display = 'none';
-    document.getElementById('novaSenhaInfo').style.display = 'none';
-    setTimeout(()=>{
-      document.getElementById('boxEsqueci').style.display = 'none';
-      document.getElementById('boxNovaSenha').style.display = 'flex';
-    }, 900);
-  }
-});
-
-document.getElementById('reenviarCodigo').addEventListener('click', async (e)=>{
-  e.preventDefault();
-  const err = document.getElementById('novaSenhaError');
-  const info = document.getElementById('novaSenhaInfo');
-  const link = document.getElementById('reenviarCodigo');
-  err.style.display='none'; info.style.display='none';
-  await enviarCodigoRecuperacao(emailRecuperacao, link, err, info);
-});
-
-document.getElementById('novaSenhaBtn').addEventListener('click', async ()=>{
-  const codigo = document.getElementById('novaSenhaCodigo').value.trim();
-  const senha1 = document.getElementById('novaSenha1').value;
-  const senha2 = document.getElementById('novaSenha2').value;
-  const err = document.getElementById('novaSenhaError');
-  const info = document.getElementById('novaSenhaInfo');
-  err.style.display='none'; info.style.display='none';
-
-  if(!codigo){ err.textContent='Digite o código recebido por e-mail.'; err.style.display='block'; return; }
   if(!senha1 || !senha2){ err.textContent='Preencha os dois campos de senha.'; err.style.display='block'; return; }
   if(senha1.length < 6){ err.textContent='A senha deve ter pelo menos 6 caracteres.'; err.style.display='block'; return; }
   if(senha1 !== senha2){ err.textContent='As senhas não coincidem.'; err.style.display='block'; return; }
 
-  const btn = document.getElementById('novaSenhaBtn');
-  btn.disabled = true; btn.textContent = 'Verificando...';
+  btn.disabled = true; btn.textContent = 'Redefinindo...';
 
-  const { error: errVerify } = await db.auth.verifyOtp({
-    email: emailRecuperacao,
-    token: codigo,
-    type: 'recovery'
-  });
+  try{
+    const resp = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, novaSenha: senha1 })
+    });
+    const data = await resp.json();
 
-  if(errVerify){
     btn.disabled = false; btn.textContent = 'Redefinir senha';
-    err.textContent = 'Código inválido ou expirado. ' + errVerify.message;
-    err.style.display = 'block';
-    return;
-  }
 
-  btn.textContent = 'Salvando...';
-  const { error: errUpdate } = await db.auth.updateUser({ password: senha1 });
+    if(!resp.ok){
+      err.textContent = data.error || 'Erro ao redefinir senha.';
+      err.style.display = 'block';
+      return;
+    }
 
-  btn.disabled = false; btn.textContent = 'Redefinir senha';
-
-  if(errUpdate){
-    err.textContent = 'Erro: ' + errUpdate.message;
-    err.style.display = 'block';
-  } else {
-    info.textContent = 'Senha alterada com sucesso! Redirecionando...';
+    info.textContent = 'Senha redefinida com sucesso! Você já pode fazer login.';
     info.style.display = 'block';
     info.style.color = '#1fa85c';
-    setTimeout(()=>{ window.location.href = '/app/'; }, 1800);
+    setTimeout(()=>{
+      document.getElementById('boxEsqueci').style.display = 'none';
+      document.getElementById('boxLogin').style.display = 'flex';
+      document.getElementById('esqueciEmail').value = '';
+      document.getElementById('novaSenha1').value = '';
+      document.getElementById('novaSenha2').value = '';
+      info.style.display = 'none';
+    }, 2000);
+  }catch(e){
+    btn.disabled = false; btn.textContent = 'Redefinir senha';
+    err.textContent = 'Erro de conexão. Tente novamente.';
+    err.style.display = 'block';
   }
 });
 
