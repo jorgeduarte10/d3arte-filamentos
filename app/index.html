@@ -517,23 +517,33 @@
     <div class="auth-status" id="loginInfo" style="display:none;"></div>
   </div>
 
-  <!-- TELA ESQUECI MINHA SENHA (redefinição direta, sem confirmação por e-mail) -->
+  <!-- TELA ESQUECI MINHA SENHA (passo 1: envia link de redefinição por e-mail) -->
   <div class="auth-box" id="boxEsqueci" style="display:none;flex-direction:column;">
     <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
     <h2>Redefinir senha</h2>
-    <p>Digite seu e-mail e a nova senha.</p>
+    <p>Digite seu e-mail. Vamos enviar um link para você criar uma nova senha.</p>
     <label>E-mail</label>
     <input type="email" id="esqueciEmail" placeholder="voce@email.com">
-    <label>Nova senha</label>
-    <input type="password" id="novaSenha1" placeholder="••••••••">
-    <label>Confirmar nova senha</label>
-    <input type="password" id="novaSenha2" placeholder="••••••••">
-    <button class="btn-primary" id="esqueciBtn">Redefinir senha</button>
+    <button class="btn-primary" id="esqueciBtn">Enviar link</button>
     <div style="text-align:center;margin-top:10px;font-size:13px;color:var(--muted);">
       Lembrou? <a href="#" id="voltarLogin" style="color:var(--accent);font-weight:600;text-decoration:none;">Voltar ao login</a>
     </div>
     <div class="auth-status error" id="esqueciError" style="display:none;"></div>
     <div class="auth-status" id="esqueciInfo" style="display:none;"></div>
+  </div>
+
+  <!-- TELA NOVA SENHA (passo 2: aberta pelo link do e-mail) -->
+  <div class="auth-box" id="boxNovaSenha" style="display:none;flex-direction:column;">
+    <div style="font-family:Georgia,serif;font-size:26px;color:var(--sidebar);margin-bottom:20px;font-weight:400;">D3Arte</div>
+    <h2>Criar nova senha</h2>
+    <p>Digite sua nova senha duas vezes.</p>
+    <label>Nova senha</label>
+    <input type="password" id="novaSenha1" placeholder="••••••••">
+    <label>Confirmar nova senha</label>
+    <input type="password" id="novaSenha2" placeholder="••••••••">
+    <button class="btn-primary" id="novaSenhaBtn">Salvar nova senha</button>
+    <div class="auth-status error" id="novaSenhaError" style="display:none;"></div>
+    <div class="auth-status" id="novaSenhaInfo" style="display:none;"></div>
   </div>
 
   <!-- TELA DE CADASTRO -->
@@ -2227,10 +2237,21 @@ function init(){
     return;
   }
 
+  const veioDoLinkDeSenha = window.location.hash.includes('type=recovery');
+
   try{
     db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   }catch(e){
     console.error('Erro ao conectar Supabase:',e.message);
+    return;
+  }
+
+  db.auth.onAuthStateChange((event)=>{
+    if(event === 'PASSWORD_RECOVERY') mostrarTelaNovaSenha();
+  });
+
+  if(veioDoLinkDeSenha){
+    mostrarTelaNovaSenha();
     return;
   }
 
@@ -2339,7 +2360,7 @@ async function carregarPainelAdmin(){
   }
 
   const statusLabel = { trial:'🟡 Trial', fundador:'🟢 Fundador', ativo:'🟢 Ativo', vencido:'🔴 Vencido', liberado:'🔓 Liberado', bloqueado:'⛔ Bloqueado' };
-  const planoLabel = { trial:'—', fundador:'Fundador (R$ 39,90 único)', recorrente:'Recorrente (R$ 9,90/mês)' };
+  const planoLabel = { trial:'—', fundador:'Fundador (R$ 49,90 único)', recorrente:'Recorrente (R$ 9,90/mês)' };
 
   tbody.innerHTML = lista.map(c => `
     <tr style="border-bottom:1px solid var(--line);">
@@ -2408,52 +2429,66 @@ document.getElementById('voltarLogin').addEventListener('click', (e)=>{
 
 document.getElementById('esqueciBtn').addEventListener('click', async ()=>{
   const email = document.getElementById('esqueciEmail').value.trim();
-  const senha1 = document.getElementById('novaSenha1').value;
-  const senha2 = document.getElementById('novaSenha2').value;
   const err = document.getElementById('esqueciError');
   const info = document.getElementById('esqueciInfo');
   const btn = document.getElementById('esqueciBtn');
   err.style.display='none'; info.style.display='none';
-
   if(!email){ err.textContent='Digite seu e-mail.'; err.style.display='block'; return; }
-  if(!senha1 || !senha2){ err.textContent='Preencha os dois campos de senha.'; err.style.display='block'; return; }
+  if(!db){
+    try{ db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }
+    catch(e){ err.textContent='Erro de conexão.'; err.style.display='block'; return; }
+  }
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/app/'
+  });
+  btn.disabled = false; btn.textContent = 'Enviar link';
+  if(error){
+    err.textContent = 'Não foi possível enviar agora. Tente de novo em alguns minutos.';
+    err.style.display = 'block';
+    return;
+  }
+  // Mensagem igual existindo ou não a conta (não revela quais e-mails estão cadastrados)
+  info.textContent = 'Se este e-mail tiver conta, você vai receber um link em instantes. Confira também a caixa de spam.';
+  info.style.display = 'block';
+  info.style.color = '#1fa85c';
+});
+
+function mostrarTelaNovaSenha(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appScreen').style.display='none';
+  ['boxLogin','boxCadastro','boxEsqueci'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+  document.getElementById('boxNovaSenha').style.display='flex';
+}
+
+document.getElementById('novaSenhaBtn').addEventListener('click', async ()=>{
+  const senha1 = document.getElementById('novaSenha1').value;
+  const senha2 = document.getElementById('novaSenha2').value;
+  const err = document.getElementById('novaSenhaError');
+  const info = document.getElementById('novaSenhaInfo');
+  const btn = document.getElementById('novaSenhaBtn');
+  err.style.display='none'; info.style.display='none';
+  if(!senha1 || !senha2){ err.textContent='Preencha os dois campos.'; err.style.display='block'; return; }
   if(senha1.length < 6){ err.textContent='A senha deve ter pelo menos 6 caracteres.'; err.style.display='block'; return; }
   if(senha1 !== senha2){ err.textContent='As senhas não coincidem.'; err.style.display='block'; return; }
-
-  btn.disabled = true; btn.textContent = 'Redefinindo...';
-
-  try{
-    const resp = await fetch('/api/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, novaSenha: senha1 })
-    });
-    const data = await resp.json();
-
-    btn.disabled = false; btn.textContent = 'Redefinir senha';
-
-    if(!resp.ok){
-      err.textContent = data.error || 'Erro ao redefinir senha.';
-      err.style.display = 'block';
-      return;
-    }
-
-    info.textContent = 'Senha redefinida com sucesso! Você já pode fazer login.';
-    info.style.display = 'block';
-    info.style.color = '#1fa85c';
-    setTimeout(()=>{
-      document.getElementById('boxEsqueci').style.display = 'none';
-      document.getElementById('boxLogin').style.display = 'flex';
-      document.getElementById('esqueciEmail').value = '';
-      document.getElementById('novaSenha1').value = '';
-      document.getElementById('novaSenha2').value = '';
-      info.style.display = 'none';
-    }, 2000);
-  }catch(e){
-    btn.disabled = false; btn.textContent = 'Redefinir senha';
-    err.textContent = 'Erro de conexão. Tente novamente.';
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const { error } = await db.auth.updateUser({ password: senha1 });
+  btn.disabled = false; btn.textContent = 'Salvar nova senha';
+  if(error){
+    err.textContent = 'O link expirou ou é inválido. Peça um novo em "Esqueci minha senha".';
     err.style.display = 'block';
+    return;
   }
+  info.textContent = 'Senha alterada! Entrando...';
+  info.style.display = 'block';
+  info.style.color = '#1fa85c';
+  history.replaceState(null, '', window.location.pathname);
+  const { data } = await db.auth.getUser();
+  setTimeout(()=>{
+    document.getElementById('boxNovaSenha').style.display='none';
+    if(data && data.user) showApp(data.user);
+    else { document.getElementById('boxLogin').style.display='flex'; }
+  }, 1200);
 });
 
 
