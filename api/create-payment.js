@@ -1,4 +1,5 @@
 const { MercadoPagoConfig, Preference } = require('mercadopago');
+const { contarVagasFundador } = require('./vagas-fundador');
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN,
@@ -32,6 +33,13 @@ module.exports = async (req, res) => {
 
     const item = itens[plano];
     if (!item) return res.status(400).json({ error: 'Plano inválido' });
+
+    if (plano === 'fundador') {
+      const vagas = await contarVagasFundador();
+      if (vagas <= 0) {
+        return res.status(400).json({ error: 'As vagas do Plano Fundador esgotaram.' });
+      }
+    }
 
     const preference = new Preference(client);
     const result = await preference.create({

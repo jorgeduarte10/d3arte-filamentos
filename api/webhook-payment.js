@@ -72,7 +72,7 @@ module.exports = async (req, res) => {
     let novoPlano = plano;
 
     if (plano === 'fundador') {
-      vencimento = new Date(agora.getFullYear() + 1, agora.getMonth(), agora.getDate());
+      vencimento = null; // Plano Fundador: acesso vitalício
       novoStatus = 'fundador';
       novoPlano = 'fundador';
     } else if (plano === 'recorrente') {
