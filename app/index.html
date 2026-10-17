@@ -2475,7 +2475,14 @@ document.getElementById('novaSenhaBtn').addEventListener('click', async ()=>{
   const { error } = await db.auth.updateUser({ password: senha1 });
   btn.disabled = false; btn.textContent = 'Salvar nova senha';
   if(error){
-    err.textContent = 'O link expirou ou é inválido. Peça um novo em "Esqueci minha senha".';
+    const cod = error.code || '';
+    if(cod === 'same_password'){
+      err.textContent = 'A nova senha precisa ser diferente da senha atual.';
+    } else if(cod === 'weak_password'){
+      err.textContent = 'Senha muito fraca. Use uma senha mais forte.';
+    } else {
+      err.textContent = 'O link expirou ou é inválido. Peça um novo em "Esqueci minha senha".';
+    }
     err.style.display = 'block';
     return;
   }
