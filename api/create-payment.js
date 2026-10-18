@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
       fundador: {
         title: 'D3Arte Filamentos — Plano Fundador',
         quantity: 1,
-        unit_price: 49.90,
+        unit_price: 5.00, // TESTE TEMPORÁRIO — voltar para 49.90
         currency_id: 'BRL',
       },
       recorrente: {
